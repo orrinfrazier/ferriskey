@@ -115,7 +115,6 @@ dependencies = [
  "clap",
  "dotenv",
  "serde",
- "serde_json",
  "sqlx",
  "thiserror",
  "tokio",
