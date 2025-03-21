@@ -1,9 +1,8 @@
-use tracing::info;
-
 use super::{
     entities::{error::RealmError, model::Realm},
     ports::{RealmRepository, RealmService},
 };
+use tracing::{error, info};
 
 #[derive(Debug, Clone)]
 pub struct RealmServiceImpl<R>
@@ -28,6 +27,19 @@ where
 {
     async fn create_realm(&self, name: String) -> Result<Realm, RealmError> {
         self.realm_repository.create_realm(name).await
+    }
+
+    async fn delete_by_name(&self, name: String) -> Result<(), RealmError> {
+        let realm = self.get_by_name(name.clone()).await.map_err(|_| {
+            error!("realm {} not found", name);
+            RealmError::Forbidden
+        })?;
+
+        if !realm.can_delete() {
+            error!("try to delete master realm");
+            return Err(RealmError::CannotDeleteMaster);
+        }
+        self.realm_repository.delete_by_name(name).await
     }
 
     async fn get_by_name(&self, name: String) -> Result<Realm, RealmError> {
