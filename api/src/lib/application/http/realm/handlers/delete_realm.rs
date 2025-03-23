@@ -18,6 +18,17 @@ pub struct DeleteRealmRoute {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DeleteRealmResponse(String);
 
+#[utoipa::path(
+    delete,
+    path = "/{name}",
+    tag = "realm",
+    params(
+          ("name" = String, Path, description = "Realm name"),
+    ),
+    responses(
+        (status = 200)
+    ),
+)]
 pub async fn delete_realm<R: RealmService>(
     DeleteRealmRoute { name }: DeleteRealmRoute,
     Extension(realm_service): Extension<Arc<R>>,

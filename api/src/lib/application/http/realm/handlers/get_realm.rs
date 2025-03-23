@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use crate::application::http::server::errors::ApiError;
 use crate::application::http::server::handlers::ApiSuccess;
-use crate::domain::realm::{entities::model::Realm, ports::RealmService};
+use crate::domain::realm::{entities::realm::Realm, ports::RealmService};
 
 #[derive(TypedPath, Deserialize)]
 #[typed_path("/realms/{name}")]
@@ -14,6 +14,17 @@ pub struct GetRealmRoute {
     pub name: String,
 }
 
+#[utoipa::path(
+    get,
+    path = "/{name}",
+    tag = "realm",
+    params(
+        ("name" = String, Path, description = "Realm name"),
+    ),
+    responses(
+        (status = 200, body = Realm)
+    ),
+)]
 pub async fn get_realm<R: RealmService>(
     GetRealmRoute { name }: GetRealmRoute,
     Extension(realm_service): Extension<Arc<R>>,

@@ -6,7 +6,7 @@ use axum_macros::TypedPath;
 use crate::application::http::realm::validators::CreateRealmValidator;
 use crate::application::http::server::errors::{ApiError, ValidateJson};
 use crate::application::http::server::handlers::ApiSuccess;
-use crate::domain::realm::{entities::model::Realm, ports::RealmService};
+use crate::domain::realm::{entities::realm::Realm, ports::RealmService};
 
 #[derive(TypedPath)]
 #[typed_path("/realms")]

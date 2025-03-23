@@ -1,8 +1,9 @@
+use crate::domain::utils::generate_timestamp;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use utoipa::ToSchema;
-use uuid::{NoContext, Timestamp, Uuid};
+use uuid::Uuid;
 
 #[derive(
     Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Ord, PartialOrd, FromRow, ToSchema,
@@ -16,10 +17,8 @@ pub struct Realm {
 
 impl Realm {
     pub fn new(name: String) -> Self {
-        let now = Utc::now();
-        let seconds = now.timestamp().try_into().unwrap_or(0);
+        let (now, timestamp) = generate_timestamp();
 
-        let timestamp = Timestamp::from_unix(NoContext, seconds, 0);
         Self {
             id: Uuid::new_v7(timestamp),
             name,
