@@ -25,7 +25,7 @@ impl ClientRepository for PostgresClientRepository {
         realm_id: uuid::Uuid,
         name: String,
         client_id: String,
-        secret: String,
+        secret: Option<String>,
         enabled: bool,
         protocol: String,
         public_client: bool,
@@ -63,6 +63,26 @@ impl ClientRepository for PostgresClientRepository {
           client.updated_at
         )
         .execute(&*self.postgres.get_pool())
+        .await
+        .map_err(|_| ClientError::InternalServerError)?;
+
+        Ok(client)
+    }
+
+    async fn get_by_client_id(
+        &self,
+        client_id: String,
+        realm_id: uuid::Uuid,
+    ) -> Result<Client, ClientError> {
+        let client = sqlx::query_as!(
+            Client,
+            r#"
+            SELECT * FROM clients WHERE client_id = $1 AND realm_id = $2
+            "#,
+            client_id,
+            realm_id
+        )
+        .fetch_one(&*self.postgres.get_pool())
         .await
         .map_err(|_| ClientError::InternalServerError)?;
 

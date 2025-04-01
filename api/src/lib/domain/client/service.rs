@@ -50,24 +50,29 @@ where
             .get_by_name(realm_name)
             .await
             .map_err(|_| ClientError::InternalServerError)?;
-        let secret = rand::rng()
-            .sample_iter(&rand::distr::Alphanumeric)
-            .take(15)
-            .map(char::from)
-            .collect::<String>();
 
         self.client_repository
             .create_client(
                 realm.id,
                 schema.name,
                 schema.client_id,
-                secret,
+                schema.secret,
                 schema.enabled,
                 schema.protocol,
                 schema.public_client,
                 schema.service_account_enabled,
                 schema.client_type,
             )
+            .await
+    }
+
+    async fn get_by_client_id(
+        &self,
+        client_id: String,
+        realm_id: uuid::Uuid,
+    ) -> Result<Client, ClientError> {
+        self.client_repository
+            .get_by_client_id(client_id, realm_id)
             .await
     }
 }
