@@ -2,13 +2,21 @@ use std::sync::Arc;
 
 use crate::{
     domain::{
-        client::ports::ClientRepository, credential::ports::CredentialRepository, crypto::ports::HasherRepository, jwt::ports::JwtRepository, realm::ports::RealmRepository, user::ports::UserRepository
+        authentication::ports::auth_session::AuthSessionRepository,
+        client::ports::ClientRepository, credential::ports::CredentialRepository,
+        crypto::ports::HasherRepository, jwt::ports::JwtRepository, realm::ports::RealmRepository,
+        user::ports::UserRepository,
     },
     env::Env,
     infrastructure::{
         db::postgres::Postgres,
         repositories::{
-            argon2_hasher::Argon2HasherRepository, client_repository::PostgresClientRepository, credential_repository::PostgresCredentialRepository, jwt_repository::StaticJwtRepository, realm_repository::PostgresRealmRepository, user_repository::PostgresUserRepository
+            argon2_hasher::Argon2HasherRepository,
+            auth_session_repository::PostgresAuthSessionRepository,
+            client_repository::PostgresClientRepository,
+            credential_repository::PostgresCredentialRepository,
+            jwt_repository::StaticJwtRepository, realm_repository::PostgresRealmRepository,
+            user_repository::PostgresUserRepository,
         },
     },
 };
@@ -27,7 +35,8 @@ where
     pub user_repository: U,
     pub credential_repository: CR,
     pub hasher_repository: H,
-    pub jwt_repository: Box<dyn JwtRepository>
+    pub jwt_repository: Box<dyn JwtRepository>,
+    pub auth_session_repository: Box<dyn AuthSessionRepository>,
 }
 
 impl
@@ -47,6 +56,8 @@ impl
         let credential_repository = PostgresCredentialRepository::new(Arc::clone(&postgres));
         let hasher_repository = Argon2HasherRepository::new();
         let jwt_repository = Box::new(StaticJwtRepository::new(&env.private_key, &env.public_key)?);
+        let auth_session_repository =
+            Box::new(PostgresAuthSessionRepository::new(Arc::clone(&postgres)));
 
         Ok(Self {
             postgres,
@@ -56,6 +67,7 @@ impl
             credential_repository,
             hasher_repository,
             jwt_repository,
+            auth_session_repository,
         })
     }
 }

@@ -5,6 +5,7 @@ use ferriskey::application::http::server::http_server::{HttpServer, HttpServerCo
 
 use ferriskey::application::server::AppServer;
 use ferriskey::domain::authentication::service::AuthenticationServiceImpl;
+use ferriskey::domain::authentication::service::auth_session::AuthSessionServiceImpl;
 
 use ferriskey::domain::credential::service::CredentialServiceImpl;
 
@@ -61,13 +62,17 @@ async fn main() -> Result<(), anyhow::Error> {
     ));
 
     let jwt_service: Arc<dyn JwtService> = Arc::new(JwtServiceImpl::new(app_server.jwt_repository));
-    
+
     let authentication_service = Arc::new(AuthenticationServiceImpl::new(
         Arc::clone(&realm_service),
         Arc::clone(&client_service),
         Arc::clone(&credential_service),
         Arc::clone(&user_service),
         Arc::clone(&jwt_service),
+    ));
+
+    let auth_session_service = Arc::new(AuthSessionServiceImpl::new(
+        app_server.auth_session_repository,
     ));
 
     let mediator_service = Arc::new(MediatorServiceImpl::new(
@@ -90,6 +95,7 @@ async fn main() -> Result<(), anyhow::Error> {
         client_service,
         credential_service,
         authentication_service,
+        auth_session_service,
     )
     .await?;
 

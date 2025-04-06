@@ -1,4 +1,3 @@
-use crate::application::http::auth::router::auth_router;
 use crate::application::http::authentication::router::authentication_routes;
 use crate::application::http::client::router::client_routes;
 use crate::application::http::realm::router::realm_routes;
@@ -6,6 +5,7 @@ use crate::application::http::server::app_state::AppState;
 use crate::application::http::server::openapi::ApiDoc;
 use crate::application::http::user::router::user_routes;
 use crate::domain::authentication::ports::AuthenticationService;
+use crate::domain::authentication::ports::auth_session::AuthSessionService;
 use crate::domain::client::ports::ClientService;
 use crate::domain::credential::ports::CredentialService;
 use crate::domain::realm::ports::RealmService;
@@ -42,6 +42,7 @@ impl HttpServer {
         client_service: Arc<C>,
         credential_service: Arc<CR>,
         authentication_service: Arc<A>,
+        auth_session_service: Arc<dyn AuthSessionService>,
     ) -> Result<Self, anyhow::Error>
     where
         R: RealmService,
@@ -61,6 +62,7 @@ impl HttpServer {
             client_service,
             credential_service,
             authentication_service,
+            auth_session_service,
         );
 
         let allowed_origins: Vec<HeaderValue> = vec![
@@ -85,14 +87,14 @@ impl HttpServer {
             .merge(realm_routes::<R>())
             .merge(client_routes::<C>())
             .merge(user_routes::<CR>())
-            .merge(auth_router::<R, C>())
-            .merge(authentication_routes::<A>())
+            .merge(authentication_routes::<A, R, C>())
             .layer(trace_layer)
             .layer(cors)
             .layer(Extension(Arc::clone(&state.realm_service)))
             .layer(Extension(Arc::clone(&state.client_service)))
             .layer(Extension(Arc::clone(&state.authentication_service)))
-            .layer(Extension(Arc::clone(&state.credential_service)));
+            .layer(Extension(Arc::clone(&state.credential_service)))
+            .layer(Extension(Arc::clone(&state.auth_session_service)));
 
         let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port))
             .await
