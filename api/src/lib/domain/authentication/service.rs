@@ -6,9 +6,11 @@ use crate::domain::jwt::entities::JwtClaims;
 use crate::domain::jwt::ports::JwtService;
 use crate::domain::realm::ports::RealmService;
 use crate::domain::user::ports::UserService;
+use crate::domain::utils::generate_random_string;
 
 use super::entities::error::AuthenticationError;
 use super::entities::model::{GrantType, JwtToken};
+use super::ports::auth_session::AuthSessionService;
 use super::ports::authentication::AuthenticationService;
 
 use tracing::info;
@@ -30,6 +32,7 @@ where
     pub credential_service: Arc<CR>,
     pub user_service: Arc<U>,
     pub jwt_service: Arc<dyn JwtService>,
+    pub auth_session_service: Arc<dyn AuthSessionService>,
 }
 
 impl<R, C, CR, U> AuthenticationServiceImpl<R, C, CR, U>
@@ -45,6 +48,7 @@ where
         credential_service: Arc<CR>,
         user_service: Arc<U>,
         jwt_service: Arc<dyn JwtService>,
+        auth_session_service: Arc<dyn AuthSessionService>,
     ) -> Self {
         Self {
             realm_service,
@@ -52,6 +56,7 @@ where
             credential_service,
             user_service,
             jwt_service,
+            auth_session_service,
         }
     }
 }
@@ -178,6 +183,50 @@ where
                 self.using_credentials(realm.id, client_id, client_secret.unwrap())
                     .await
             }
+        }
+    }
+
+    async fn using_session_code(
+        &self,
+        realm_name: String,
+        client_id: Uuid,
+        session_code: Uuid,
+        username: String,
+        password: String,
+    ) -> Result<String, AuthenticationError> {
+        let realm = self
+            .realm_service
+            .get_by_name(realm_name)
+            .await
+            .map_err(|_| AuthenticationError::InvalidRealm)?;
+
+        let _ = self
+            .client_service
+            .get_by_client_id(client_id.to_string(), realm.id)
+            .await
+            .map_err(|_| AuthenticationError::InvalidClient);
+
+        let user = self
+            .user_service
+            .get_by_username(username, realm.id)
+            .await
+            .map_err(|_| AuthenticationError::InvalidUser)?;
+
+        let has_valid_password = self
+            .credential_service
+            .verify_password(user.id, password)
+            .await
+            .map_err(|_| AuthenticationError::InvalidPassword);
+
+        if has_valid_password? {
+            self.auth_session_service
+                .get_by_session_code(session_code)
+                .await
+                .map_err(|_| AuthenticationError::NotFound)?;
+
+            Ok(generate_random_string())
+        } else {
+            Err(AuthenticationError::InvalidPassword)
         }
     }
 }
