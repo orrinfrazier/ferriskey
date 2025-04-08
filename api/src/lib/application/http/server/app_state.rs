@@ -4,9 +4,9 @@ use crate::domain::{
     authentication::ports::{
         auth_session::AuthSessionService, authentication::AuthenticationService,
     },
-    client::ports::ClientService,
-    credential::ports::CredentialService,
-    realm::ports::RealmService,
+    client::ports::client_service::ClientService,
+    credential::ports::credential_service::CredentialService,
+    realm::ports::realm_service::RealmService,
 };
 
 #[derive(Clone)]

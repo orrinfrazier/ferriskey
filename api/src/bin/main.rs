@@ -5,20 +5,22 @@ use ferriskey::application::http::server::http_server::{HttpServer, HttpServerCo
 
 use ferriskey::application::server::AppServer;
 use ferriskey::domain::authentication::ports::auth_session::AuthSessionService;
-use ferriskey::domain::authentication::service::AuthenticationServiceImpl;
 use ferriskey::domain::authentication::service::auth_session::AuthSessionServiceImpl;
+use ferriskey::domain::authentication::service::authentication::AuthenticationServiceImpl;
 
-use ferriskey::domain::credential::service::CredentialServiceImpl;
+use ferriskey::domain::credential::services::credential_service::CredentialServiceImpl;
+use ferriskey::domain::crypto::services::crypto_service::CryptoServiceImpl;
 
-use ferriskey::domain::crypto::service::CryptoServiceImpl;
-
-use ferriskey::domain::jwt::ports::JwtService;
-use ferriskey::domain::jwt::service::JwtServiceImpl;
-use ferriskey::domain::mediator::ports::MediatorService;
-use ferriskey::domain::mediator::service::MediatorServiceImpl;
-use ferriskey::domain::user::service::UserServiceImpl;
+use ferriskey::domain::jwt::ports::jwt_service::JwtService;
+use ferriskey::domain::jwt::services::jwt_service::JwtServiceImpl;
+use ferriskey::domain::mediator::ports::mediator_service::MediatorService;
+use ferriskey::domain::mediator::services::mediator_service::MediatorServiceImpl;
+use ferriskey::domain::user::services::user_service::UserServiceImpl;
 use ferriskey::{
-    domain::{client::service::ClientServiceImpl, realm::service::RealmServiceImpl},
+    domain::{
+        client::services::client_service::ClientServiceImpl,
+        realm::services::realm_service::RealmServiceImpl,
+    },
     env::{AppEnv, Env},
 };
 
