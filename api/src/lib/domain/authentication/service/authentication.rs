@@ -186,7 +186,7 @@ where
     async fn using_session_code(
         &self,
         realm_name: String,
-        client_id: Uuid,
+        client_id: String,
         session_code: Uuid,
         username: String,
         password: String,
@@ -199,7 +199,7 @@ where
 
         let _ = self
             .client_service
-            .get_by_client_id(client_id.to_string(), realm.id)
+            .get_by_client_id(client_id, realm.id)
             .await
             .map_err(|_| AuthenticationError::InvalidClient);
 
