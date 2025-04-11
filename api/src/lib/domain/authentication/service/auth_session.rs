@@ -1,24 +1,27 @@
-use async_trait::async_trait;
-
 use uuid::Uuid;
 
-use crate::domain::authentication::{
-    entities::auth_session::{AuthSession, AuthSessionError},
-    ports::auth_session::{AuthSessionRepository, AuthSessionService},
+use crate::{
+    domain::authentication::{
+        entities::auth_session::{AuthSession, AuthSessionError},
+        ports::auth_session::{AuthSessionRepository, AuthSessionService},
+    },
+    infrastructure::repositories::auth_session_repository::PostgresAuthSessionRepository,
 };
 
-pub struct AuthSessionServiceImpl {
-    pub repository: Box<dyn AuthSessionRepository>,
+pub type DefaultAuthSessionService = AuthSessionServiceImpl<PostgresAuthSessionRepository>;
+
+#[derive(Clone)]
+pub struct AuthSessionServiceImpl<R: AuthSessionRepository> {
+    pub repository: R,
 }
 
-impl AuthSessionServiceImpl {
-    pub fn new(repository: Box<dyn AuthSessionRepository>) -> Self {
+impl<R: AuthSessionRepository> AuthSessionServiceImpl<R> {
+    pub fn new(repository: R) -> Self {
         Self { repository }
     }
 }
 
-#[async_trait]
-impl AuthSessionService for AuthSessionServiceImpl {
+impl<R: AuthSessionRepository> AuthSessionService for AuthSessionServiceImpl<R> {
     async fn create_session(
         &self,
         realm_id: Uuid,

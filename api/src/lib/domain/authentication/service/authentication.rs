@@ -8,44 +8,44 @@ use crate::domain::{
         entities::{error::AuthenticationError, grant_type::GrantType, jwt_token::JwtToken},
         ports::{auth_session::AuthSessionService, authentication::AuthenticationService},
     },
-    client::ports::client_service::ClientService,
-    credential::ports::credential_service::CredentialService,
-    jwt::{entities::jwt_claim::JwtClaim, ports::jwt_service::JwtService},
-    realm::ports::realm_service::RealmService,
-    user::ports::user_service::UserService,
+    client::{
+        ports::client_service::ClientService, services::client_service::DefaultClientService,
+    },
+    credential::{
+        ports::credential_service::CredentialService,
+        services::credential_service::DefaultCredentialService,
+    },
+    jwt::{
+        entities::jwt_claim::JwtClaim, ports::jwt_service::JwtService,
+        services::jwt_service::DefaultJwtService,
+    },
+    realm::{ports::realm_service::RealmService, services::realm_service::DefaultRealmService},
+    user::{ports::user_service::UserService, services::user_service::DefaultUserService},
     utils::generate_random_string,
 };
 
+use super::auth_session::DefaultAuthSessionService;
+
+pub type DefaultAuthenticationService = AuthenticationServiceImpl;
+
 #[derive(Clone)]
-pub struct AuthenticationServiceImpl<R, C, CR, U>
-where
-    R: RealmService,
-    C: ClientService,
-    CR: CredentialService,
-    U: UserService,
-{
-    pub realm_service: Arc<R>,
-    pub client_service: Arc<C>,
-    pub credential_service: Arc<CR>,
-    pub user_service: Arc<U>,
-    pub jwt_service: Arc<dyn JwtService>,
-    pub auth_session_service: Arc<dyn AuthSessionService>,
+pub struct AuthenticationServiceImpl {
+    pub realm_service: Arc<DefaultRealmService>,
+    pub client_service: Arc<DefaultClientService>,
+    pub credential_service: Arc<DefaultCredentialService>,
+    pub user_service: Arc<DefaultUserService>,
+    pub jwt_service: Arc<DefaultJwtService>,
+    pub auth_session_service: Arc<DefaultAuthSessionService>,
 }
 
-impl<R, C, CR, U> AuthenticationServiceImpl<R, C, CR, U>
-where
-    R: RealmService,
-    C: ClientService,
-    CR: CredentialService,
-    U: UserService,
-{
+impl AuthenticationServiceImpl {
     pub fn new(
-        realm_service: Arc<R>,
-        client_service: Arc<C>,
-        credential_service: Arc<CR>,
-        user_service: Arc<U>,
-        jwt_service: Arc<dyn JwtService>,
-        auth_session_service: Arc<dyn AuthSessionService>,
+        realm_service: Arc<DefaultRealmService>,
+        client_service: Arc<DefaultClientService>,
+        credential_service: Arc<DefaultCredentialService>,
+        user_service: Arc<DefaultUserService>,
+        jwt_service: Arc<DefaultJwtService>,
+        auth_session_service: Arc<DefaultAuthSessionService>,
     ) -> Self {
         Self {
             realm_service,
@@ -58,13 +58,7 @@ where
     }
 }
 
-impl<R, C, CR, U> AuthenticationService for AuthenticationServiceImpl<R, C, CR, U>
-where
-    R: RealmService,
-    C: ClientService,
-    CR: CredentialService,
-    U: UserService,
-{
+impl AuthenticationService for AuthenticationServiceImpl {
     async fn using_code(
         &self,
         _client_id: String,
