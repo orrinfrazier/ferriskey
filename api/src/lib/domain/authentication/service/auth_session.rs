@@ -42,6 +42,7 @@ impl<R: AuthSessionRepository> AuthSessionService for AuthSessionServiceImpl<R> 
             state,
             nonce,
             user_id,
+            None,
             false,
         );
         self.repository.create(&session).await?;
@@ -53,5 +54,23 @@ impl<R: AuthSessionRepository> AuthSessionService for AuthSessionServiceImpl<R> 
         session_code: Uuid,
     ) -> Result<AuthSession, AuthSessionError> {
         self.repository.get_by_session_code(session_code).await
+    }
+
+    async fn get_by_code(&self, code: String) -> Result<AuthSession, AuthSessionError> {
+        self.repository
+            .get_by_code(code)
+            .await?
+            .ok_or(AuthSessionError::NotFound)
+    }
+
+    async fn update_code(
+        &self,
+        session_code: Uuid,
+        code: String,
+        user_id: Uuid,
+    ) -> Result<AuthSession, AuthSessionError> {
+        self.repository
+            .update_code_and_user_id(session_code, code, user_id)
+            .await
     }
 }

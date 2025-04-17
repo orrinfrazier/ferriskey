@@ -1,29 +1,47 @@
-import { useState } from 'react'
+import { useEffect, useMemo } from 'react'
+import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router'
 import './app.css'
-import { useDispatch, useSelector } from 'react-redux'
-import { AppDispatch } from '@/store/store'
-import { getUserState } from '@/store/user.store'
-import LoaderSpinner from '@/components/ui/loader-spinner'
-import { Route, Routes } from 'react-router'
+import Layout from './components/layout/layout'
+import useUser from './hooks/use-user'
 import PageAuthentication from './pages/authentication/page-authentication'
+import PageOverview from './pages/overview/page-overview'
 
 function App() {
-  const dispatch = useDispatch<AppDispatch>()
-  const { isAuthenticated, isLoading, token, user } = useSelector(getUserState)
+  const { realm_name } = useParams()
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const { isAuthenticated, isLoading } = useUser()
 
-  //   if (isLoading) {
-  //     return (
-  //       <div className='flex h-screen w-screen items-center justify-center'>
-  //         <LoaderSpinner />
-  //       </div>
-  //     )
-  //   }
+  console.log(isAuthenticated, isLoading, pathname)
+
+  const authenticateRoute = useMemo(() => {
+    if (pathname.includes('authentication')) {
+      return true
+    }
+    return false
+  }, [pathname])
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !pathname.includes('authentication')) {
+      const realm = realm_name ?? 'master'
+
+      navigate(`/realms/${realm}/authentication/login`)
+    } else {
+      if (isAuthenticated) {
+        navigate(`/realms/${realm_name}/overview`)
+      }
+    }
+  }, [isAuthenticated, isLoading, pathname, realm_name, navigate])
 
   return (
     <>
       <Routes>
-        <Route path='realms/:realm_name'>
-          <Route path='authentication/*' element={<PageAuthentication />} />
+        <Route path="realms/:realm_name">
+          <Route path="authentication/*" element={<PageAuthentication />} />
+
+          <Route element={<Layout />}>
+            <Route path="overview/*" element={<PageOverview />} />
+          </Route>
         </Route>
       </Routes>
     </>

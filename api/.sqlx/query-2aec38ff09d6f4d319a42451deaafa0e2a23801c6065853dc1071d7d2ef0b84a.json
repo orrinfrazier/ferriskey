@@ -50,16 +50,21 @@
       },
       {
         "ordinal": 9,
+        "name": "code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 10,
         "name": "authenticated",
         "type_info": "Bool"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "expires_at",
         "type_info": "Timestamptz"
       }
@@ -76,6 +81,7 @@
       false,
       false,
       false,
+      true,
       true,
       true,
       true,

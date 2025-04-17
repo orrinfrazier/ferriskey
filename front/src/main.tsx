@@ -1,25 +1,28 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './app.tsx'
 import { BrowserRouter } from 'react-router'
-import { setupStore } from './store/store.ts'
-import { Provider } from 'react-redux'
+import App from './App.tsx'
+import './index.css'
 
-const container =
-  document.getElementById('root') ||
-  (document.createElement('div') as HTMLElement)
+const container = document.getElementById('root') || (document.createElement('div') as HTMLElement)
 const root = createRoot(container)
 
-const store = setupStore()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+})
 
 const render = (
   <StrictMode>
-    <Provider store={store}>
+    <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />
       </BrowserRouter>
-    </Provider>
+    </QueryClientProvider>
   </StrictMode>
 )
 

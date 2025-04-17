@@ -10,10 +10,12 @@ use crate::domain::authentication::service::authentication::DefaultAuthenticatio
 use crate::domain::client::services::client_service::DefaultClientService;
 use crate::domain::credential::services::credential_service::DefaultCredentialService;
 use crate::domain::realm::services::realm_service::DefaultRealmService;
+use crate::domain::user::services::user_service::DefaultUserService;
 use anyhow::Context;
 use axum::Router;
-use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE};
+use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE, LOCATION};
 use axum::http::{HeaderValue, Method};
+use axum_cookie::prelude::*;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 use tracing::info_span;
@@ -44,6 +46,7 @@ impl HttpServer {
         credential_service: Arc<DefaultCredentialService>,
         authentication_service: Arc<DefaultAuthenticationService>,
         auth_session_service: Arc<DefaultAuthSessionService>,
+        user_service: Arc<DefaultUserService>,
     ) -> Result<Self, anyhow::Error> {
         let trace_layer = tower_http::trace::TraceLayer::new_for_http().make_span_with(
             |request: &axum::extract::Request| {
@@ -58,6 +61,7 @@ impl HttpServer {
             credential_service,
             authentication_service,
             auth_session_service,
+            user_service,
         );
 
         let allowed_origins: Vec<HeaderValue> = vec![
@@ -72,9 +76,16 @@ impl HttpServer {
                 Method::DELETE,
                 Method::PUT,
                 Method::PATCH,
+                Method::OPTIONS,
             ])
             .allow_origin(allowed_origins)
-            .allow_headers([AUTHORIZATION, CONTENT_TYPE, CONTENT_LENGTH, ACCEPT])
+            .allow_headers([
+                AUTHORIZATION,
+                CONTENT_TYPE,
+                CONTENT_LENGTH,
+                ACCEPT,
+                LOCATION,
+            ])
             .allow_credentials(true);
 
         let router = axum::Router::new()
@@ -90,6 +101,7 @@ impl HttpServer {
             // .layer(Extension(Arc::clone(&state.authentication_service)))
             // .layer(Extension(Arc::clone(&state.credential_service)))
             // .layer(Extension(Arc::clone(&state.auth_session_service)))
+            .layer(CookieLayer::default())
             .with_state(state);
 
         let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port))
