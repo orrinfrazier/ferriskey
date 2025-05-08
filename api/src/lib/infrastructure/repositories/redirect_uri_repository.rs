@@ -47,14 +47,33 @@ impl RedirectUriRepository for PostgresRedirectUriRepository {
         &self,
         client_id: Uuid,
     ) -> Result<Vec<RedirectUri>, RedirectUriError> {
-        todo!()
+        sqlx::query_as!(
+            RedirectUri,
+            r#"
+            SELECT * FROM redirect_uris WHERE client_id = $1
+            "#,
+            client_id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|_| RedirectUriError::DatabaseError)
     }
 
     async fn get_enabled_by_client_id(
         &self,
         client_id: Uuid,
     ) -> Result<Vec<RedirectUri>, RedirectUriError> {
-        todo!()
+        sqlx::query_as!(
+            RedirectUri,
+            r#"
+            SELECT * FROM redirect_uris WHERE client_id = $1
+            AND enabled = true
+            "#,
+            client_id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|_| RedirectUriError::DatabaseError)
     }
 
     async fn update_enabled(
@@ -62,10 +81,35 @@ impl RedirectUriRepository for PostgresRedirectUriRepository {
         id: Uuid,
         enabled: bool,
     ) -> Result<RedirectUri, RedirectUriError> {
-        todo!()
+        sqlx::query_as!(
+            RedirectUri,
+            r#"
+            UPDATE redirect_uris SET enabled = $1, updated_at = NOW() WHERE id = $2
+            RETURNING id, client_id, value, enabled, created_at, updated_at
+            "#,
+            enabled,
+            id
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|_| RedirectUriError::DatabaseError)
     }
 
     async fn delete(&self, id: Uuid) -> Result<(), RedirectUriError> {
-        todo!()
+        let res = sqlx::query!(
+            r#"
+            DELETE FROM redirect_uris WHERE id = $1
+            "#,
+            id
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|_| RedirectUriError::DatabaseError)?;
+
+        if res.rows_affected() == 0 {
+            return Err(RedirectUriError::NotFound);
+        }
+
+        Ok(())
     }
 }

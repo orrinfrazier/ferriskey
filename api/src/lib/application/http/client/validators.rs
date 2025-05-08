@@ -32,3 +32,9 @@ pub struct CreateRedirectUriValidator {
     #[serde(default)]
     pub enabled: bool,
 }
+
+#[derive(Debug, Serialize, Deserialize, Validate, ToSchema)]
+pub struct UpdateRedirectUriValidator {
+    #[serde(default)]
+    pub enabled: bool,
+}

@@ -2,14 +2,9 @@ use axum::extract::State;
 
 use crate::{
     application::http::{
-        client::{
-            routes::client_routes::CreateRedirectUriRoute, validators::CreateRedirectUriValidator,
-        },
+        client::routes::client_routes::GetRedirectUriRoute,
         server::{
-            api_entities::{
-                api_error::{ApiError, ValidateJson},
-                response::Response,
-            },
+            api_entities::{api_error::ApiError, response::Response},
             app_state::AppState,
         },
     },
@@ -19,27 +14,28 @@ use crate::{
 };
 
 #[utoipa::path(
-    post,
+    get,
     path = "/{client_id}/redirects",
     params(
         ("realm_name" = String, Path, description = "Realm name"),
         ("client_id" = Uuid, Path, description = "Client ID"),
     ),
     tag = "client",
-    request_body = CreateRedirectUriValidator,
+    responses(
+        (status = 200, body = Vec<RedirectUri>),
+    ),
 )]
-pub async fn create_redirect_uri(
-    CreateRedirectUriRoute {
+pub async fn get_redirect_uris(
+    GetRedirectUriRoute {
         realm_name,
         client_id,
-    }: CreateRedirectUriRoute,
+    }: GetRedirectUriRoute,
     State(state): State<AppState>,
-    ValidateJson(payload): ValidateJson<CreateRedirectUriValidator>,
-) -> Result<Response<RedirectUri>, ApiError> {
+) -> Result<Response<Vec<RedirectUri>>, ApiError> {
     state
         .redirect_uri_service
-        .add_redirect_uri(payload, realm_name, client_id)
+        .get_by_client_id(client_id)
         .await
         .map_err(ApiError::from)
-        .map(Response::Created)
+        .map(|uris| Response::OK(uris))
 }
