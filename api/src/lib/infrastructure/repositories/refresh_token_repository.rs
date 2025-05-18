@@ -64,6 +64,17 @@ impl RefreshTokenRepository for PostgresRefreshTokenRepository {
         Ok(refresh_token.into())
     }
 
+    async fn get_by_jti(&self, jti: Uuid) -> Result<RefreshToken, JwtError> {
+        let refresh_token = entity::refresh_tokens::Entity::find()
+            .filter(entity::refresh_tokens::Column::Jti.eq(jti))
+            .one(&self.db)
+            .await
+            .map_err(|e| JwtError::GenerationError(e.to_string()))?
+            .ok_or_else(|| JwtError::GenerationError("Refresh token not found".to_string()))?;
+
+        Ok(refresh_token.into())
+    }
+
     async fn delete(&self, jti: Uuid) -> Result<(), JwtError> {
         entity::refresh_tokens::Entity::delete_many()
             .filter(entity::refresh_tokens::Column::Jti.eq(jti))
