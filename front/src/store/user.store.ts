@@ -8,18 +8,15 @@ export const userStore = create<UserState>()(
       (set) => ({
         isAuthenticated: false,
         isLoading: true,
-        token: null,
-        user: null,
         access_token: null,
         refresh_token: null,
         expiration: null,
-        switchIsLoading: (isLoading: boolean) => set({ isLoading }),
-        setToken: (token: string) => set({ token }),
-        switchIsAuthenticated: (isAuthenticated: boolean) => set({ isAuthenticated }),
+        setLoading: (value: boolean) => set({ isLoading: value }),
+        setAuthenticated: (value: boolean) => set({ isAuthenticated: value }),
         setAuthTokens: (access_token: string, refresh_token: string, expiration: number | null) => set({ access_token, refresh_token, expiration }),
       }),
       {
-        name: 'user',
+        name: 'auth',
         storage: createJSONStorage(() => localStorage)
       }
     )
