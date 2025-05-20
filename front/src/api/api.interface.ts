@@ -52,6 +52,22 @@ export interface CreateRoleValidator {
 	permissions: number;
 }
 
+export interface Role {
+	id: string;
+	name: string;
+	description?: string;
+	permissions: number;
+	realm_id: string;
+	client_id: string;
+	client?: Client;
+	created_at: Date;
+	updated_at: Date;
+}
+
+export interface GetRolesResponse {
+	data: Role[];
+}
+
 export interface JwtToken {
 	access_token: string;
 	token_type: string;
@@ -63,18 +79,6 @@ export interface JwtToken {
 export interface Realm {
 	id: string;
 	name: string;
-	created_at: Date;
-	updated_at: Date;
-}
-
-export interface Role {
-	id: string;
-	name: string;
-	description?: string;
-	permissions: number;
-	realm_id: string;
-	client_id: string;
-	client?: Client;
 	created_at: Date;
 	updated_at: Date;
 }
@@ -118,5 +122,25 @@ export interface UserRealmsResponse {
 
 export interface UsersResponse {
 	data: User[];
+}
+
+export enum Permissions {
+	CreateClient = "CreateClient",
+	ManageAuthorization = "ManageAuthorization",
+	ManageClients = "ManageClients",
+	ManageEvents = "ManageEvents",
+	ManageIdentityProviders = "ManageIdentityProviders",
+	ManageRealm = "ManageRealm",
+	ManageUsers = "ManageUsers",
+	QueryClients = "QueryClients",
+	QueryGroups = "QueryGroups",
+	QueryRealms = "QueryRealms",
+	QueryUsers = "QueryUsers",
+	ViewAuthorization = "ViewAuthorization",
+	ViewClients = "ViewClients",
+	ViewEvents = "ViewEvents",
+	ViewIdentityProviders = "ViewIdentityProviders",
+	ViewRealm = "ViewRealm",
+	ViewUsers = "ViewUsers",
 }
 
