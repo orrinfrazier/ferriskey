@@ -1,8 +1,13 @@
 import { userStore } from "@/store/user.store"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient, BaseQuery } from "."
-import { UsersResponse } from "./api.interface"
+import { CreateUserSchema } from '../pages/user/validators'
+import { CreateUserResponse, UsersResponse } from "./api.interface"
 
+export interface UserMutateContract<T> {
+  realm: string,
+  payload: T
+}
 
 export const useGetUsers = ({ realm }: BaseQuery) => {
   return useQuery({
@@ -17,6 +22,49 @@ export const useGetUsers = ({ realm }: BaseQuery) => {
       })
 
       return response.data
+    }
+  })
+}
+
+export const useCreateUser = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ realm, payload }: UserMutateContract<CreateUserSchema>): Promise<CreateUserResponse> => {
+      const accessToken = userStore.getState().access_token
+      const response = await apiClient.post(`/realms/${realm}/users`, payload, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["users"],
+      })
+    }
+  })
+}
+
+export const useBulkDeleteUser = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ realm, payload }: UserMutateContract<{ ids: string[] }>): Promise<CreateUserResponse> => {
+      const accessToken = userStore.getState().access_token
+      const response = await apiClient.delete(`/realms/${realm}/users/bulk`, {
+        data: payload,
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["users"],
+      })
     }
   })
 }
