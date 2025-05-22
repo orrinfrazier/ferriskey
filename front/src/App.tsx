@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router'
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router'
 import './App.css'
 import Layout from './components/layout/layout'
 import { useAuth } from './hooks/use-auth'
@@ -35,6 +35,35 @@ function App() {
     }
   }, [isAuthenticated, isLoading, authenticateRoute, pathname, realm_name])
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isShortcutPressed = event.ctrlKey && event.shiftKey && event.key === 'T'
+
+      if (isShortcutPressed) {
+        const head = document.head
+        let themeLink = document.getElementById("theme-overrides") as HTMLLinkElement
+
+        if (!themeLink) {
+          themeLink = document.createElement("link")
+          themeLink.rel = "stylesheet"
+          themeLink.id = "theme-overrides"
+          head.appendChild(themeLink)
+        }
+
+        const currentTheme = themeLink.getAttribute("href")
+
+        if (currentTheme === "/themes/neo-brutalism.theme.css") {
+          themeLink.removeAttribute("href")
+        } else {
+          themeLink.href = "/themes/neo-brutalism.theme.css"
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
+
   return (
     <>
       <Routes>
@@ -49,6 +78,8 @@ function App() {
             <Route path='roles/*' element={<PageRole />} />
           </Route>
         </Route>
+
+        <Route path='*' element={<Navigate to="/realms/master/authentication/login" replace />} />
       </Routes>
     </>
   )

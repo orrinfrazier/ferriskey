@@ -2,7 +2,6 @@ import { DataTable } from "@/components/ui/data-table";
 import { Edit, ExternalLink, Trash2 } from "lucide-react";
 import { columns } from "../columns/list-client.column";
 import { Client } from "@/api/api.interface";
-import CreateClientModalFeature from "../feature/create-client-modal-feature";
 
 export interface PageClientsOverviewProps {
   isLoading?: boolean
@@ -12,19 +11,9 @@ export interface PageClientsOverviewProps {
 
 }
 
-export default function PageClientsOverview({ data, isLoading, realmName, handleDeleteSelected }: PageClientsOverviewProps) {
+export default function PageClientsOverview({ data, isLoading, handleDeleteSelected }: PageClientsOverviewProps) {
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
-          <p className="text-muted-foreground">
-            Gérez les clients et leurs configurations dans {realmName}
-          </p>
-        </div>
-        <CreateClientModalFeature />
-      </div>
-
+    <div>
       <DataTable
         data={data}
         columns={columns}
