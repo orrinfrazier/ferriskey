@@ -2,27 +2,21 @@ import { defineExplainerConfig } from '@/utils'
 
 export default defineExplainerConfig({
   meta: {
-    title: 'FerrysKey',
+    title: 'FerrisKey',
     description: 'FerrisKey is an open-source IAM (Identity and Access Management) solution designed for modern cloud-native environments. ',
     thumbnail: 'https://placehold.co/1200x630',
   },
   urls: {
     github: 'https://github.com/ferriskey/ferriskey',
-    getStarted: '/docs/framework/getting-started',
-    documentation: '/docs/framework/installation'
+    getStarted: '/docs/welcome/introduction',
+    documentation: '/docs/welcome/installation'
   },
   docs: {
-    framework: {
-      icon: 'lucide:cuboid',
-      label: 'Framework',
-      href: '/docs/framework/getting-started',
-      baseUrl: '/docs/framework',
-    },
-    syntax: {
+    welcome: {
       icon: 'lucide:pencil-line',
-      label: 'Syntax',
-      href: '/docs/syntax/texts',
-      baseUrl: '/docs/syntax',
+      label: 'Welcome',
+      href: '/docs/welcome/introduction',
+      baseUrl: '/docs/welcome',
     },
     concepts: {
       icon: 'lucide:book',
@@ -59,6 +53,11 @@ export default defineExplainerConfig({
         avatar: 'https://avatars.githubusercontent.com/u/8946317?v=4',
         href: 'https://github.com/LeadcodeDev',
       },
+      nathael: {
+        name: 'Nathael',
+        avatar: 'https://avatars.githubusercontent.com/u/64804778?v=4',
+        href: 'https://github.com/nathaelb',
+      }
     }
   },
   navbar: [
@@ -84,21 +83,6 @@ export default defineExplainerConfig({
           label: 'Reference',
           description: 'Learn how to use Explainer.',
           href: '/docs/reference/api',
-        },
-      ],
-    },
-    {
-      label: 'Explainer',
-      items: [
-        {
-          label: 'Framework',
-          description: 'Discover Explainer framework guidelines and usages.',
-          href: '/docs/framework/getting-started',
-        },
-        {
-          label: 'Syntax',
-          description: 'Learn markdown syntax and markdown components.',
-          href: '/docs/syntax/texts',
         },
       ],
     },
