@@ -165,9 +165,9 @@ impl MediatorService for MediatorServiceImpl {
             Err(_) => {
                 let user = self
                     .user_service
-                    .get_by_username("admin".to_string(), realm.id)
+                    .get_by_username(self.env.admin_username.clone(), realm.id)
                     .await?;
-                info!("user {:} already exists", "admin");
+                info!("user {:} already exists", self.env.admin_username.clone());
                 user
             }
         };
@@ -186,6 +186,7 @@ impl MediatorService for MediatorServiceImpl {
                 info!("role {:} already exists", "master-realm");
                 anyhow::anyhow!("Role already exists")
             });
+
         let _ = match self
             .credential_service
             .create_password_credential(user.id, self.env.admin_password.clone(), "".to_string())
