@@ -99,6 +99,10 @@ export interface GetClientResponse {
 	data: Client;
 }
 
+export interface GetRoleResponse {
+	data: Role;
+}
+
 export interface GetRolesResponse {
 	data: Role[];
 }
@@ -152,6 +156,7 @@ export enum Permissions {
 	ManageIdentityProviders = "ManageIdentityProviders",
 	ManageRealm = "ManageRealm",
 	ManageUsers = "ManageUsers",
+	ManageRoles = "ManageRoles",
 	QueryClients = "QueryClients",
 	QueryGroups = "QueryGroups",
 	QueryRealms = "QueryRealms",
@@ -162,5 +167,6 @@ export enum Permissions {
 	ViewIdentityProviders = "ViewIdentityProviders",
 	ViewRealm = "ViewRealm",
 	ViewUsers = "ViewUsers",
+	ViewRoles = "ViewRoles",
 }
 
