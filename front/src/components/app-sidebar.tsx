@@ -1,13 +1,7 @@
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
   Frame,
-  GalleryVerticalEnd,
   Map,
   PieChart,
-  SquareTerminal,
   TriangleAlert,
 } from 'lucide-react'
 import * as React from 'react'
@@ -28,7 +22,6 @@ import { cn } from '@/lib/utils'
 import { Link, useParams } from 'react-router'
 import RealmSwitcher from './realm-switcher'
 import { REALM_OVERVIEW_URL, REALM_URL, RouterParams } from '@/routes/router'
-import { USER_OVERVIEW_URL, USER_URL } from '@/routes/sub-router/user.router'
 import { useConfig } from '@/hooks/use-config'
 import BadgeColor, { BadgeColorScheme } from './ui/badge-color'
 
@@ -39,42 +32,7 @@ const data = {
     email: 'm@example.com',
     avatar: '/avatars/shadcn.jpg',
   },
-  teams: [
-    {
-      name: 'Acme Inc',
-      logo: GalleryVerticalEnd,
-      plan: 'Enterprise',
-    },
-    {
-      name: 'Acme Corp.',
-      logo: AudioWaveform,
-      plan: 'Startup',
-    },
-    {
-      name: 'Evil Corp.',
-      logo: Command,
-      plan: 'Free',
-    },
-  ],
-  navMain: [
-    {
-      title: 'Clients',
-      //url: `${CLIENTS_URL('master')}${OVERVIEW_URL}`,
-      url: '/realms/master/clients/overview',
-      icon: SquareTerminal,
-      isActive: true,
-    },
-    {
-      title: 'Users',
-      url: `${USER_URL('master')}${USER_OVERVIEW_URL}`,
-      icon: Bot,
-    },
-    {
-      title: 'Roles',
-      url: '#',
-      icon: BookOpen,
-    },
-  ],
+
   projects: [
     {
       name: 'Realm Settings',
