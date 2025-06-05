@@ -54,10 +54,21 @@ where
 
     async fn reset_password(
         &self,
-        _user_id: uuid::Uuid,
-        _password: String,
+        user_id: uuid::Uuid,
+        password: String,
     ) -> Result<(), CredentialError> {
-        unimplemented!("Reset password")
+        let hash_result = self
+            .crypto_service
+            .hash_password(&password)
+            .await
+            .map_err(|e| CredentialError::HashPasswordError(e.to_string()))?;
+
+        self.credential_repository
+            .create_credential(user_id, "password".into(), hash_result, "".into())
+            .await
+            .map_err(|_| CredentialError::CreateCredentialError)?;
+
+        Ok(())
     }
 
     async fn verify_password(
@@ -86,5 +97,18 @@ where
             .map_err(|e| CredentialError::VerifyPasswordError(e.to_string()))?;
 
         Ok(is_valid)
+    }
+
+    async fn get_credentials_by_user_id(
+        &self,
+        user_id: uuid::Uuid,
+    ) -> Result<Vec<Credential>, CredentialError> {
+        self.credential_repository
+            .get_credentials_by_user_id(user_id)
+            .await
+    }
+
+    async fn delete_by_id(&self, credential_id: uuid::Uuid) -> Result<(), CredentialError> {
+        self.credential_repository.delete_by_id(credential_id).await
     }
 }

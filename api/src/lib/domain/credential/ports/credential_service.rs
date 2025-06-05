@@ -21,4 +21,13 @@ pub trait CredentialService: Clone + Send + Sync + 'static {
         user_id: Uuid,
         password: String,
     ) -> impl Future<Output = Result<bool, CredentialError>> + Send;
+
+    fn get_credentials_by_user_id(
+        &self,
+        user_id: Uuid,
+    ) -> impl Future<Output = Result<Vec<Credential>, CredentialError>> + Send;
+    fn delete_by_id(
+        &self,
+        credential_id: Uuid,
+    ) -> impl Future<Output = Result<(), CredentialError>> + Send;
 }

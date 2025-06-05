@@ -16,4 +16,10 @@ pub enum CredentialError {
 
     #[error("Get password credential error")]
     GetPasswordCredentialError,
+
+    #[error("Get user credentials error")]
+    GetUserCredentialsError,
+
+    #[error("Delete credential error")]
+    DeleteCredentialError,
 }
