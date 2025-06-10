@@ -118,6 +118,10 @@ export interface DeleteUserCredentialResponse {
 	message: string;
 }
 
+export interface GetCertsResponse {
+	keys: JwkKey[];
+}
+
 export interface GetClientResponse {
 	data: Client;
 }
