@@ -3,51 +3,52 @@ use axum_macros::TypedPath;
 use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::{
     application::{
         auth::Identity,
         http::{
             server::{
-                api_entities::{
-                    api_error::{ApiError, ValidateJson},
-                    response::Response,
-                },
+                api_entities::{api_error::ApiError, response::Response},
                 app_state::AppState,
             },
-            user::{policies::user_policies::UserPolicy, validators::BulkDeleteUserValidator},
+            user::policies::user_policies::UserPolicy,
         },
     },
     domain::{realm::ports::realm_service::RealmService, user::ports::user_service::UserService},
 };
 
-#[derive(Debug, Serialize, Deserialize, ToSchema, PartialEq)]
-#[typeshare]
-pub struct BulkDeleteUserResponse {
-    pub count: u32,
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/realms/{realm_name}/users/{user_id}")]
+pub struct DeleteUserRoute {
+    pub realm_name: String,
+    pub user_id: Uuid,
 }
 
-#[derive(TypedPath, Deserialize)]
-#[typed_path("/realms/{realm_name}/users/bulk")]
-pub struct BulkDeleteUserRoute {
-    pub realm_name: String,
+#[derive(Debug, Serialize, Deserialize, ToSchema, PartialEq)]
+#[typeshare]
+pub struct DeleteUserResponse {
+    pub count: u32,
 }
 
 #[utoipa::path(
     delete,
-    path = "/bulk",
+    path = "/{user_id}",
     tag = "user",
     params(
         ("realm_name" = String, Path, description = "Realm name"),
-        ("ids" = Vec<Uuid>, Path, description = "User IDs"),
+        ("user_id" = String, Path, description = "User ID"),
     ),
 )]
-pub async fn bulk_delete_user(
-    BulkDeleteUserRoute { realm_name }: BulkDeleteUserRoute,
+pub async fn delete_user(
+    DeleteUserRoute {
+        realm_name,
+        user_id,
+    }: DeleteUserRoute,
     State(state): State<AppState>,
     Extension(identity): Extension<Identity>,
-    ValidateJson(payload): ValidateJson<BulkDeleteUserValidator>,
-) -> Result<Response<BulkDeleteUserResponse>, ApiError> {
+) -> Result<Response<DeleteUserResponse>, ApiError> {
     let realm = state
         .realm_service
         .get_by_name(realm_name)
@@ -64,11 +65,11 @@ pub async fn bulk_delete_user(
 
     let count = state
         .user_service
-        .bulk_delete_user(payload.ids)
+        .delete_user(user_id)
         .await
         .map_err(ApiError::from)?;
 
-    Ok(Response::OK(BulkDeleteUserResponse {
+    Ok(Response::OK(DeleteUserResponse {
         count: count as u32,
     }))
 }

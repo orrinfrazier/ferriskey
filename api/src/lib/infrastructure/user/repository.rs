@@ -163,6 +163,15 @@ impl UserRepository for PostgresUserRepository {
         Ok(rows.rows_affected)
     }
 
+    async fn delete_user(&self, user_id: Uuid) -> Result<u64, UserError> {
+        let rows = entity::users::Entity::delete_by_id(user_id)
+            .exec(&self.db)
+            .await
+            .map_err(|_| UserError::InternalServerError)?;
+
+        Ok(rows.rows_affected)
+    }
+
     async fn assign_role_to_user(&self, user_id: Uuid, role_id: Uuid) -> Result<(), UserError> {
         let user_role = entity::user_role::ActiveModel {
             role_id: Set(role_id),
