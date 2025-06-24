@@ -4,6 +4,7 @@ use crate::domain::{
             dto::{CreateClientDto, UpdateClientDto},
             error::ClientError,
             model::Client,
+            redirect_uri::RedirectUri,
         },
         ports::client_repository::ClientRepository,
     },
@@ -32,6 +33,7 @@ impl From<entity::clients::Model> for Client {
             public_client: model.public_client,
             service_account_enabled: model.service_account_enabled,
             client_type: model.client_type,
+            redirect_uris: None,
             created_at,
             updated_at,
         }
@@ -96,13 +98,27 @@ impl ClientRepository for PostgresClientRepository {
     }
 
     async fn get_by_id(&self, id: uuid::Uuid) -> Result<Client, ClientError> {
-        let client = ClientEntity::find()
+        let clients_model = ClientEntity::find()
             .filter(entity::clients::Column::Id.eq(id))
-            .one(&self.db)
+            .find_with_related(entity::redirect_uris::Entity)
+            .all(&self.db)
             .await
-            .map_err(|_| ClientError::InternalServerError)?
-            .map(Client::from)
-            .ok_or(ClientError::NotFound)?;
+            .map_err(|_| ClientError::InternalServerError)?;
+
+        if clients_model.is_empty() {
+            return Err(ClientError::NotFound);
+        }
+
+        let (client_model, uri_models) = &clients_model[0];
+
+        let mut client: Client = client_model.clone().into();
+
+        let redirect_uris: Vec<RedirectUri> = uri_models
+            .iter()
+            .map(|uri_model| uri_model.clone().into())
+            .collect();
+
+        client.redirect_uris = Some(redirect_uris);
 
         Ok(client)
     }
