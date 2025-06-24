@@ -78,9 +78,14 @@ impl MediatorService for MediatorServiceImpl {
             }
             Err(_) => {
                 info!("Creating master realm");
-                self.realm_service
+                let _realm = self
+                    .realm_service
                     .create_realm("master".to_string())
-                    .await?
+                    .await
+                    .map_err(|_| anyhow::anyhow!("failed to create master realm"))?;
+
+                info!("Master realm created with ID: {}", _realm.id);
+                _realm
             }
         };
 
@@ -88,122 +93,138 @@ impl MediatorService for MediatorServiceImpl {
 
         let client_id = "security-admin-console".to_string();
 
-        let schema = CreateClientValidator {
-            client_id: client_id.clone(),
-            enabled: true,
-            name: "security-admin-console".to_string(),
-            protocol: "openid-connect".to_string(),
-            public_client: false,
-            service_account_enabled: false,
-            client_type: "confidential".to_string(),
-        };
-
-        let _client = match self
+        let _ = match self
             .client_service
-            .create_client(schema, realm.name.clone())
+            .get_by_client_id(client_id.clone(), realm.id)
             .await
         {
             Ok(client) => {
-                info!("client {:} created", client_id.clone());
+                info!("client {:} already exists", client_id.clone());
                 client
             }
             Err(_) => {
-                info!("client {:} already exists", client_id.clone());
-                self.client_service
-                    .get_by_client_id(client_id.clone(), realm.id)
-                    .await?
+                info!("Creating client {:}", client_id.clone());
+                let _client = self
+                    .client_service
+                    .create_client(
+                        CreateClientValidator {
+                            client_id: client_id.clone(),
+                            enabled: true,
+                            name: client_id.clone(),
+                            protocol: "openid-connect".to_string(),
+                            public_client: false,
+                            service_account_enabled: false,
+                            client_type: "confidential".to_string(),
+                        },
+                        realm.name.clone(),
+                    )
+                    .await
+                    .map_err(|_| anyhow::anyhow!("failed to create client"))?;
+
+                info!("client {:} created", client_id.clone());
+                _client
             }
         };
+
+        let master_realm_client_id = "master-realm".to_string();
 
         let master_realm_client = match self
             .client_service
-            .create_client(
-                CreateClientValidator {
-                    client_id: "master-realm".to_string(),
-                    enabled: true,
-                    name: "master-realm".to_string(),
-                    protocol: "openid-connect".to_string(),
-                    public_client: false,
-                    service_account_enabled: false,
-                    client_type: "confidential".to_string(),
-                },
-                realm.name.clone(),
-            )
+            .get_by_client_id(master_realm_client_id.clone(), realm.id.clone())
             .await
         {
             Ok(client) => {
-                info!("client {:} created", client_id.clone());
+                info!("client {:} created", master_realm_client_id.clone());
                 client
             }
             Err(_) => {
-                info!("client {:} already exists", client_id.clone());
-                self.client_service
-                    .get_by_client_id("master-realm".to_string(), realm.id)
-                    .await?
+                info!("Creating client {:}", master_realm_client_id.clone());
+                let _client = self
+                    .client_service
+                    .create_client(
+                        CreateClientValidator {
+                            client_id: master_realm_client_id.clone(),
+                            enabled: true,
+                            name: master_realm_client_id.clone(),
+                            protocol: "openid-connect".to_string(),
+                            public_client: false,
+                            service_account_enabled: false,
+                            client_type: "confidential".to_string(),
+                        },
+                        realm.name.clone(),
+                    )
+                    .await
+                    .map_err(|_| anyhow::anyhow!("failed to create client"))?;
+
+                info!("client {:} created", master_realm_client_id.clone());
+                _client
             }
         };
-
-        // Initialize redirect URIs for the admin client
-        self.initialize_admin_redirect_uris().await?;
 
         let user = match self
             .user_service
-            .create_user(CreateUserDto {
-                email: self.env.admin_email.clone(),
-                email_verified: true,
-                enabled: true,
-                firstname: self.env.admin_username.clone(),
-                lastname: self.env.admin_username.clone(),
-                realm_id: realm.id,
-                client_id: None,
-                username: self.env.admin_username.clone(),
-            })
+            .get_by_username(self.env.admin_username.clone(), realm.id.clone())
             .await
         {
             Ok(user) => {
-                info!("user {:} created", user.username);
+                info!("user {:} already exists", user.username);
                 user
             }
             Err(_) => {
-                let user = self
+                info!("Creating user for client {:}", client_id.clone());
+                let _user = self
                     .user_service
-                    .get_by_username(self.env.admin_username.clone(), realm.id)
-                    .await?;
-                info!("user {:} already exists", self.env.admin_username.clone());
-                user
+                    .create_user(CreateUserDto {
+                        email: self.env.admin_email.clone(),
+                        email_verified: true,
+                        enabled: true,
+                        firstname: self.env.admin_username.clone(),
+                        lastname: self.env.admin_username.clone(),
+                        realm_id: realm.id,
+                        client_id: None,
+                        username: self.env.admin_username.clone(),
+                    })
+                    .await
+                    .map_err(|_| anyhow::anyhow!("failed to create user"))?;
+
+                info!("user {:} created", _user.username);
+                _user
             }
         };
 
-        let role = match self
+        let roles = match self
             .role_service
-            .create(CreateRoleDto {
-                client_id: Some(master_realm_client.id),
-                name: "master-realm".to_string(),
-                permissions: Permissions::to_names(&[Permissions::ManageRealm]),
-                realm_id: realm.id,
-                description: None,
-            })
+            .get_by_client_id(master_realm_client.id.clone())
             .await
         {
-            Ok(role) => role,
-            Err(_) => {
-                info!("role {:} already exists", "master-realm");
-                self.role_service
-                    .find_by_name("master-realm".to_string(), realm.id)
-                    .await?
+            Ok(roles) => roles,
+            Err(_) => Vec::new(),
+        };
+        let _ = match roles
+            .into_iter()
+            .find(|r| r.name == master_realm_client_id.clone())
+        {
+            Some(role) => {
+                info!("role {:} already exists", role.name);
+                role
+            }
+            None => {
+                let _role = self
+                    .role_service
+                    .create(CreateRoleDto {
+                        client_id: Some(master_realm_client.id.clone()),
+                        name: master_realm_client_id.clone(),
+                        permissions: Permissions::to_names(&[Permissions::ManageRealm]),
+                        realm_id: realm.id,
+                        description: None,
+                    })
+                    .await
+                    .map_err(|_| anyhow::anyhow!("failed to create role"))?;
+
+                info!("role {:} created", master_realm_client_id.clone());
+                _role
             }
         };
-
-        match self
-            .user_role_service
-            .assign_role("master".to_string(), user.id, role.id)
-            .await
-        {
-            Ok(_) => info!("Role 'master' assigned to user {}", user.username),
-            Err(_) => {
-                info!("The role might already be assigned.");
-            }
-        }
 
         let _ = match self
             .credential_service
@@ -211,12 +232,15 @@ impl MediatorService for MediatorServiceImpl {
             .await
         {
             Ok(credential) => {
-                info!("credential {:} created", credential.id);
+                info!(
+                    "credential for user {:} created",
+                    self.env.admin_username.clone()
+                );
                 credential
             }
             Err(_) => {
                 info!(
-                    "credential {:} already exists",
+                    "credential for user {:} already exists",
                     self.env.admin_username.clone()
                 );
                 return Ok(());
