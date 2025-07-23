@@ -1,16 +1,35 @@
 import { Role } from '@/api/api.interface.ts'
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Shield, Users } from 'lucide-react'
-import { permissionGroups } from '@/pages/role/types/permission-groups.ts'
 import BadgeColor, { BadgeColorScheme } from '@/components/ui/badge-color.tsx'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils.ts'
+import { permissionGroups } from '@/pages/role/types/permission-groups.ts'
+import { CheckIcon, LockKeyholeIcon, Shield, Users } from 'lucide-react'
+import { useFormContext } from 'react-hook-form'
+import FloatingActionBar from '../../../components/ui/floating-action-bar'
+import { UpdateRolePermissionsSchema } from '../schemas/update-role.schema'
 
 export interface PageRolePermissionsProps {
   role: Role
+  togglePermission: (permission: string) => void
+  handleSubmit: () => void
 }
 
-export default function PageRolePermissions({ role }: PageRolePermissionsProps) {
-  const permissions = role.permissions || []
+export default function PageRolePermissions(props: PageRolePermissionsProps) {
+  const { role, togglePermission, handleSubmit } = props
+
+  const { watch } = useFormContext<UpdateRolePermissionsSchema>()
+  const permissions = watch('permissions')
+
+  const hasDifferentPermissions = permissions.length !== role.permissions.length
+    || !permissions.every((permission) => role.permissions.includes(permission))
+
+  function normalizePermissionName(permission: string) {
+    return permission
+      .toString()
+      .split('_')
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(' ')
+  }
 
   return (
     <div className="space-y-6">
@@ -49,21 +68,17 @@ export default function PageRolePermissions({ role }: PageRolePermissionsProps) 
               </div>
               <div className="flex flex-col gap-3 mt-4">
                 {groupPermissions.map((permission) => {
-                  const permissionName = permission
-                    .toString()
-                    .split('_')
-                    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-                    .join(' ')
                   const inRolePermissions = permissions.includes(permission.toString())
                   return (
                     <div
                       className={cn(
-                        'p-2 border rounded-sm',
+                        'p-2 border rounded-sm cursor-pointer',
                         inRolePermissions
                           ? 'bg-primary/10 hover:bg-primary/20'
                           : 'bg-muted/10 hover:bg-muted/20'
                       )}
                       key={permission}
+                      onClick={() => togglePermission(permission)}
                     >
                       <div className="flex items-center gap-2">
                         <span
@@ -74,7 +89,7 @@ export default function PageRolePermissions({ role }: PageRolePermissionsProps) 
                               : 'text-muted-foreground'
                           )}
                         >
-                          {permissionName}
+                          {normalizePermissionName(permission)}
                         </span>
                         <div>
                           <BadgeColor
@@ -94,6 +109,19 @@ export default function PageRolePermissions({ role }: PageRolePermissionsProps) 
           )
         })}
       </div>
+      <FloatingActionBar
+        title="Update permissions"
+        show={hasDifferentPermissions}
+        actions={[
+          {
+            icon: <CheckIcon className="h-4 w-4" />,
+            label: "Submit changes",
+            onClick: handleSubmit,
+          }
+        ]}
+        description="Update the role permissions from the selected permissions."
+        icon={<LockKeyholeIcon className="h-4 w-4" />}
+      />
     </div>
   )
 }
