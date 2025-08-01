@@ -1,15 +1,14 @@
-use axum::extract::State;
-use axum::http::StatusCode;
-use axum_macros::TypedPath;
-use serde::Deserialize;
-use tracing::info;
-use uuid::Uuid;
-
 use crate::application::http::server::api_entities::api_error::{ApiError, ValidateJson};
 use crate::application::http::server::api_entities::api_success::ApiSuccess;
 use crate::application::http::server::app_state::AppState;
 use crate::application::http::user::validators::ResetPasswordValidator;
-use crate::domain::credential::ports::credential_service::CredentialService;
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum_macros::TypedPath;
+use ferriskey_core::domain::credential::ports::CredentialService;
+use serde::Deserialize;
+use tracing::info;
+use uuid::Uuid;
 
 #[derive(Deserialize, TypedPath)]
 #[typed_path("/realms/{realm_name}/users/{user_id}/reset-password")]
@@ -45,6 +44,7 @@ pub async fn reset_password(
         user_id, realm_name
     );
     state
+        .service_bundle
         .credential_service
         .reset_password(user_id, payload.value)
         .await

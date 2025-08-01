@@ -1,13 +1,12 @@
-use crate::application::auth::Identity;
-use crate::application::http::client::policies::ClientPolicy;
 use crate::application::http::server::api_entities::api_error::ApiError;
 use crate::application::http::server::api_entities::response::Response;
 use crate::application::http::server::app_state::AppState;
-use crate::domain::client::ports::client_service::ClientService;
-use crate::domain::realm::ports::realm_service::RealmService;
+
 use axum::Extension;
 use axum::extract::State;
 use axum_macros::TypedPath;
+use ferriskey_core::application::client::use_cases::delete_client_use_case::DeleteClientUseCaseParams;
+use ferriskey_core::domain::authentication::value_objects::Identity;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 use typeshare::typeshare;
@@ -51,25 +50,17 @@ pub async fn delete_client(
         "Deleting client with ID {} in realm {}",
         client_id, realm_name
     );
-    let realm = state
-        .realm_service
-        .get_by_name(realm_name.clone())
-        .await
-        .map_err(ApiError::from)?;
-
-    if !ClientPolicy::delete(identity, state.clone(), realm).await? {
-        return Err(ApiError::Forbidden(
-            "You do not have permission to delete this client".to_string(),
-        ));
-    }
-
-    info!("can delete");
-
     state
-        .client_service
-        .delete_by_id(client_id)
-        .await
-        .map_err(ApiError::from)?;
+        .use_case_bundle
+        .delete_client_use_case
+        .execute(
+            identity,
+            DeleteClientUseCaseParams {
+                client_id,
+                realm_name: realm_name.clone(),
+            },
+        )
+        .await?;
 
     Ok(Response::OK(DeleteClientResponse {
         message: format!("Client with ID {client_id} in realm {realm_name} deleted successfully"),

@@ -2,9 +2,10 @@ use crate::application::http::realm::validators::UpdateRealmValidator;
 use crate::application::http::server::api_entities::api_error::{ApiError, ValidateJson};
 use crate::application::http::server::api_entities::response::Response;
 use crate::application::http::server::app_state::AppState;
-use crate::domain::realm::{entities::realm::Realm, ports::realm_service::RealmService};
 use axum::extract::State;
 use axum_macros::TypedPath;
+use ferriskey_core::domain::realm::entities::Realm;
+use ferriskey_core::domain::realm::ports::RealmService;
 use serde::Deserialize;
 
 #[derive(TypedPath, Deserialize)]
@@ -31,6 +32,7 @@ pub async fn update_realm(
     ValidateJson(payload): ValidateJson<UpdateRealmValidator>,
 ) -> Result<Response<Realm>, ApiError> {
     state
+        .service_bundle
         .realm_service
         .update_realm(name, payload.name)
         .await

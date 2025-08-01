@@ -1,18 +1,16 @@
+use crate::application::http::server::{
+    api_entities::{api_error::ApiError, response::Response},
+    app_state::AppState,
+};
 use axum::extract::State;
 use axum_macros::TypedPath;
+use ferriskey_core::domain::role::entities::Role;
+use ferriskey_core::domain::role::ports::RoleService;
 use serde::{Deserialize, Serialize};
 use tracing::info;
 use typeshare::typeshare;
 use utoipa::ToSchema;
 use uuid::Uuid;
-
-use crate::{
-    application::http::server::{
-        api_entities::{api_error::ApiError, response::Response},
-        app_state::AppState,
-    },
-    domain::role::{entities::models::Role, ports::RoleService},
-};
 
 #[derive(TypedPath, Deserialize)]
 #[typed_path("/realms/{realm_name}/roles/{role_id}")]
@@ -54,6 +52,7 @@ pub async fn get_role(
     );
 
     let role = state
+        .service_bundle
         .role_service
         .get_by_id(role_id)
         .await

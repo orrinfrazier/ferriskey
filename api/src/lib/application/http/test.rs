@@ -1,11 +1,9 @@
-use chrono::Utc;
-
-use crate::domain::{
-    realm::entities::realm::Realm, role::entities::models::Role, user::entities::model::User,
-    utils::generate_uuid_v7,
-};
-
 use super::server::app_state::AppState;
+use chrono::Utc;
+use ferriskey_core::domain::common::generate_uuid_v7;
+use ferriskey_core::domain::realm::entities::Realm;
+use ferriskey_core::domain::role::entities::Role;
+use ferriskey_core::domain::user::entities::User;
 
 pub struct UserFactory {
     pub state: AppState,

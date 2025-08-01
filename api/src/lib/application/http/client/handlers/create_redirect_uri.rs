@@ -1,22 +1,19 @@
-use axum::extract::State;
-
-use crate::{
-    application::http::{
-        client::{
-            routes::client_routes::CreateRedirectUriRoute, validators::CreateRedirectUriValidator,
-        },
-        server::{
-            api_entities::{
-                api_error::{ApiError, ValidateJson},
-                response::Response,
-            },
-            app_state::AppState,
-        },
+use crate::application::http::{
+    client::{
+        routes::client_routes::CreateRedirectUriRoute, validators::CreateRedirectUriValidator,
     },
-    domain::client::{
-        entities::redirect_uri::RedirectUri, ports::redirect_uri_service::RedirectUriService,
+    server::{
+        api_entities::{
+            api_error::{ApiError, ValidateJson},
+            response::Response,
+        },
+        app_state::AppState,
     },
 };
+use axum::extract::State;
+use ferriskey_core::domain::client::entities::redirect_uri::RedirectUri;
+use ferriskey_core::domain::client::ports::RedirectUriService;
+use ferriskey_core::domain::client::value_objects::CreateRedirectUriRequest;
 
 #[utoipa::path(
     post,
@@ -37,8 +34,16 @@ pub async fn create_redirect_uri(
     ValidateJson(payload): ValidateJson<CreateRedirectUriValidator>,
 ) -> Result<Response<RedirectUri>, ApiError> {
     state
+        .service_bundle
         .redirect_uri_service
-        .add_redirect_uri(payload, realm_name, client_id)
+        .add_redirect_uri(
+            CreateRedirectUriRequest {
+                enabled: payload.enabled,
+                value: payload.value,
+            },
+            realm_name,
+            client_id,
+        )
         .await
         .map_err(ApiError::from)
         .map(Response::Created)

@@ -1,18 +1,13 @@
+use crate::application::http::server::{
+    api_entities::{api_error::ApiError, response::Response},
+    app_state::AppState,
+};
 use axum::{Extension, extract::State};
 use axum_macros::TypedPath;
+use ferriskey_core::application::user::use_cases::assign_role_use_case::AssignRoleUseCaseParams;
+use ferriskey_core::domain::authentication::value_objects::Identity;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-use crate::{
-    application::{
-        auth::Identity,
-        http::server::{
-            api_entities::{api_error::ApiError, response::Response},
-            app_state::AppState,
-        },
-    },
-    domain::user::use_cases::assign_role_use_case::AssignRoleUseCaseParams,
-};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AssignRoleResponse {
@@ -47,8 +42,9 @@ pub async fn assign_role(
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<AssignRoleResponse>, ApiError> {
     state
-        .user_orchestrator
-        .assign_role(
+        .use_case_bundle
+        .assign_role_use_case
+        .execute(
             identity,
             AssignRoleUseCaseParams {
                 realm_name: realm_name.clone(),

@@ -1,23 +1,19 @@
-use axum::extract::State;
-use tracing::info;
-
-use crate::{
-    application::http::{
-        client::{
-            routes::client_routes::UpdateRedirectUriRoute, validators::UpdateRedirectUriValidator,
-        },
-        server::{
-            api_entities::{
-                api_error::{ApiError, ValidateJson},
-                response::Response,
-            },
-            app_state::AppState,
-        },
+use crate::application::http::{
+    client::{
+        routes::client_routes::UpdateRedirectUriRoute, validators::UpdateRedirectUriValidator,
     },
-    domain::client::{
-        entities::redirect_uri::RedirectUri, ports::redirect_uri_service::RedirectUriService,
+    server::{
+        api_entities::{
+            api_error::{ApiError, ValidateJson},
+            response::Response,
+        },
+        app_state::AppState,
     },
 };
+use axum::extract::State;
+use ferriskey_core::domain::client::entities::redirect_uri::RedirectUri;
+use ferriskey_core::domain::client::ports::RedirectUriService;
+use tracing::info;
 
 #[utoipa::path(
     put,
@@ -47,6 +43,7 @@ pub async fn update_redirect_uri(
         realm_name, client_id, uri_id
     );
     state
+        .service_bundle
         .redirect_uri_service
         .update_enabled(uri_id, payload.enabled)
         .await

@@ -1,27 +1,21 @@
+use crate::application::http::{
+    server::{
+        api_entities::{
+            api_error::{ApiError, ValidateJson},
+            response::Response,
+        },
+        app_state::AppState,
+    },
+    user::validators::CreateUserValidator,
+};
 use axum::{Extension, extract::State};
 use axum_macros::TypedPath;
+use ferriskey_core::application::user::use_cases::create_user_use_case::CreateUserUseCaseParams;
+use ferriskey_core::domain::authentication::value_objects::Identity;
+use ferriskey_core::domain::user::entities::User;
 use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
 use utoipa::ToSchema;
-
-use crate::{
-    application::{
-        auth::Identity,
-        http::{
-            server::{
-                api_entities::{
-                    api_error::{ApiError, ValidateJson},
-                    response::Response,
-                },
-                app_state::AppState,
-            },
-            user::validators::CreateUserValidator,
-        },
-    },
-    domain::user::{
-        entities::model::User, use_cases::create_user_use_case::CreateUserUseCaseParams,
-    },
-};
 
 #[derive(TypedPath, Deserialize)]
 #[typed_path("/realms/{realm_name}/users")]
@@ -55,8 +49,9 @@ pub async fn create_user(
     ValidateJson(payload): ValidateJson<CreateUserValidator>,
 ) -> Result<Response<CreateUserResponse>, ApiError> {
     let user = state
-        .user_orchestrator
-        .create_user(
+        .use_case_bundle
+        .create_user_use_case
+        .execute(
             identity,
             CreateUserUseCaseParams {
                 realm_name,

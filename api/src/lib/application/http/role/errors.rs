@@ -1,7 +1,5 @@
-use crate::{
-    application::http::server::api_entities::api_error::ApiError,
-    domain::role::entities::errors::RoleError,
-};
+use crate::application::http::server::api_entities::api_error::ApiError;
+use ferriskey_core::domain::role::entities::RoleError;
 
 impl From<RoleError> for ApiError {
     fn from(value: RoleError) -> Self {
@@ -12,7 +10,7 @@ impl From<RoleError> for ApiError {
             RoleError::InternalServerError => {
                 ApiError::InternalServerError("Internal server error".to_string())
             }
-            RoleError::Forbidden => ApiError::Forbidden("Forbidden".to_string()),
+            RoleError::Forbidden(e) => ApiError::Forbidden(e),
         }
     }
 }
