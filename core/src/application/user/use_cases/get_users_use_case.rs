@@ -1,66 +1,66 @@
 use crate::application::common::policies::ensure_permissions;
 use crate::application::common::services::{
-    DefaultClientService, DefaultRealmService, DefaultRoleService, DefaultUserService,
+    DefaultClientService, DefaultRealmService, DefaultUserService,
 };
-use crate::application::role::policies::RolePolicy;
+use crate::application::user::policies::user_policy::UserPolicy;
 use crate::domain::authentication::value_objects::Identity;
 use crate::domain::realm::ports::RealmService;
-use crate::domain::role::entities::{Role, RoleError};
-use crate::domain::role::ports::RoleService;
-use uuid::Uuid;
+use crate::domain::user::entities::{User, UserError};
+use crate::domain::user::ports::UserService;
 
 #[derive(Clone)]
-pub struct GetRoleUseCase {
+pub struct GetUsersUseCase {
     realm_service: DefaultRealmService,
     user_service: DefaultUserService,
     client_service: DefaultClientService,
-    role_service: DefaultRoleService,
 }
 
-pub struct GetRoleUseCaseParams {
+pub struct GetUsersUseCaseParams {
     pub realm_name: String,
-    pub role_id: Uuid,
 }
 
-impl GetRoleUseCase {
+impl GetUsersUseCase {
     pub fn new(
         realm_service: DefaultRealmService,
         user_service: DefaultUserService,
         client_service: DefaultClientService,
-        role_service: DefaultRoleService,
     ) -> Self {
         Self {
             realm_service,
             user_service,
             client_service,
-            role_service,
         }
     }
 
     pub async fn execute(
         &self,
         identity: Identity,
-        params: GetRoleUseCaseParams,
-    ) -> Result<Role, RoleError> {
+        params: GetUsersUseCaseParams,
+    ) -> Result<Vec<User>, UserError> {
         let realm = self
             .realm_service
             .get_by_name(params.realm_name)
             .await
-            .map_err(|_| RoleError::Forbidden("Realm not found".to_string()))?;
+            .map_err(|_| UserError::InternalServerError)?;
+
+        let realm_id = realm.id;
 
         ensure_permissions(
-            RolePolicy::view(
+            UserPolicy::view(
                 identity,
-                realm,
+                realm.clone(),
                 self.user_service.clone(),
                 self.client_service.clone(),
             )
             .await
             .map_err(anyhow::Error::new),
-            "Insufficient permissions to view role in the realm",
+            "Insufficient permissions to view users",
         )
-        .map_err(|e| RoleError::Forbidden(e.to_string()))?;
+        .map_err(|e| UserError::Forbidden(e.to_string()))?;
 
-        self.role_service.get_by_id(params.role_id).await
+        self.user_service
+            .find_by_realm_id(realm_id)
+            .await
+            .map_err(|_| UserError::InternalServerError)
     }
 }

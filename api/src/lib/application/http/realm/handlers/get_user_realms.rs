@@ -2,9 +2,9 @@ use crate::application::http::server::api_entities::{api_error::ApiError, respon
 use crate::application::http::server::app_state::AppState;
 use axum::{Extension, extract::State};
 use axum_macros::TypedPath;
+use ferriskey_core::application::realm::use_cases::get_user_realms_use_case::GetUserRealmsUseCaseParams;
 use ferriskey_core::domain::authentication::value_objects::Identity;
 use ferriskey_core::domain::realm::entities::Realm;
-use ferriskey_core::domain::user::ports::UserService;
 use serde::{Deserialize, Serialize};
 use typeshare::typeshare;
 use utoipa::ToSchema;
@@ -36,30 +36,16 @@ pub struct UserRealmsResponse {
     )
 )]
 pub async fn get_user_realms(
-    _: GetUserRealmsRoute,
+    GetUserRealmsRoute { realm_name }: GetUserRealmsRoute,
     State(state): State<AppState>,
     Extension(identity): Extension<Identity>,
 ) -> Result<Response<UserRealmsResponse>, ApiError> {
-    let user = match identity {
-        Identity::User(user) => user,
-        Identity::Client(client) => state
-            .service_bundle
-            .user_service
-            .get_by_client_id(client.id)
-            .await
-            .map_err(|_| ApiError::Forbidden("Client not found".to_string()))?,
-    };
-
-    let realm = user.realm.clone().ok_or(ApiError::Forbidden(
-        "User does not belong to any realm".to_string(),
-    ))?;
-
     let realms = state
-        .service_bundle
-        .user_service
-        .get_user_realms(user, realm.name)
+        .use_case_bundle
+        .get_user_realms_use_case
+        .execute(identity, GetUserRealmsUseCaseParams { realm_name })
         .await
-        .map_err(|_| ApiError::Forbidden("User not found".to_string()))?;
+        .map_err(ApiError::from)?;
 
     Ok(Response::OK(UserRealmsResponse { data: realms }))
 }

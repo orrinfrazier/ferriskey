@@ -5,9 +5,11 @@ use crate::application::http::{
         app_state::AppState,
     },
 };
+use axum::Extension;
 use axum::extract::State;
+use ferriskey_core::application::client::use_cases::get_redirect_uris_use_case::GetRedirectUrisUseCaseParams;
+use ferriskey_core::domain::authentication::value_objects::Identity;
 use ferriskey_core::domain::client::entities::redirect_uri::RedirectUri;
-use ferriskey_core::domain::client::ports::RedirectUriService;
 use tracing::info;
 
 #[utoipa::path(
@@ -28,6 +30,7 @@ pub async fn get_redirect_uris(
         client_id,
     }: GetRedirectUriRoute,
     State(state): State<AppState>,
+    Extension(identity): Extension<Identity>,
 ) -> Result<Response<Vec<RedirectUri>>, ApiError> {
     info!(
         "Fetching redirect URIs for client: realm_name={}, client_id={}",
@@ -35,9 +38,15 @@ pub async fn get_redirect_uris(
     );
 
     state
-        .service_bundle
-        .redirect_uri_service
-        .get_by_client_id(client_id)
+        .use_case_bundle
+        .get_redirect_uris_use_case
+        .execute(
+            identity,
+            GetRedirectUrisUseCaseParams {
+                client_id,
+                realm_name,
+            },
+        )
         .await
         .map_err(ApiError::from)
         .map(Response::OK)

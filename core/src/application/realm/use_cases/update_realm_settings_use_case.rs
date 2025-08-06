@@ -4,22 +4,22 @@ use crate::application::common::services::{
 };
 use crate::application::realm::policies::RealmPolicy;
 use crate::domain::authentication::value_objects::Identity;
-use crate::domain::realm::entities::{Realm, RealmError};
+use crate::domain::realm::entities::{RealmError, RealmSetting};
 use crate::domain::realm::ports::RealmService;
-use crate::domain::user::ports::UserService;
 
 #[derive(Clone)]
-pub struct CreateRealmUseCase {
+pub struct UpdateRealmSettingsUseCase {
     pub realm_service: DefaultRealmService,
     pub user_service: DefaultUserService,
     pub client_service: DefaultClientService,
 }
 
-pub struct CreateRealmUseCaseParams {
+pub struct UpdateRealmSettingsUseCaseParams {
     pub realm_name: String,
+    pub algorithm: String,
 }
 
-impl CreateRealmUseCase {
+impl UpdateRealmSettingsUseCase {
     pub fn new(
         realm_service: DefaultRealmService,
         user_service: DefaultUserService,
@@ -35,34 +35,31 @@ impl CreateRealmUseCase {
     pub async fn execute(
         &self,
         identity: Identity,
-        params: CreateRealmUseCaseParams,
-    ) -> Result<Realm, RealmError> {
-        let realm_master = self.realm_service.get_by_name("master".to_string()).await?;
+        params: UpdateRealmSettingsUseCaseParams,
+    ) -> Result<RealmSetting, RealmError> {
+        let realm = self
+            .realm_service
+            .get_by_name(params.realm_name.clone())
+            .await
+            .map_err(|_| RealmError::Invalid)?;
 
+        let realm_id = realm.id;
         ensure_permissions(
-            RealmPolicy::create(
-                identity.clone(),
-                realm_master,
+            RealmPolicy::update(
+                identity,
+                realm,
                 self.user_service.clone(),
                 self.client_service.clone(),
             )
             .await
             .map_err(anyhow::Error::new),
-            "Insufficient permissions to create a realm",
+            "Insufficient permissions to update realm settings",
         )
         .map_err(|_| RealmError::Forbidden)?;
 
-        let user = match identity {
-            Identity::User(user) => user,
-            Identity::Client(client) => self
-                .user_service
-                .get_by_client_id(client.id)
-                .await
-                .map_err(|_| RealmError::InternalServerError)?,
-        };
-
         self.realm_service
-            .create_realm_with_user(params.realm_name, &user)
+            .update_realm_setting(realm_id, params.algorithm)
             .await
+            .map_err(|_| RealmError::InternalServerError)
     }
 }

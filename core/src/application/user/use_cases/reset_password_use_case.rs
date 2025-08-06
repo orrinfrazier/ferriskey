@@ -1,66 +1,70 @@
 use crate::application::common::policies::ensure_permissions;
 use crate::application::common::services::{
-    DefaultClientService, DefaultRealmService, DefaultRoleService, DefaultUserService,
+    DefaultClientService, DefaultCredentialService, DefaultRealmService, DefaultUserService,
 };
-use crate::application::role::policies::RolePolicy;
+use crate::application::user::policies::user_policy::UserPolicy;
 use crate::domain::authentication::value_objects::Identity;
+use crate::domain::credential::ports::CredentialService;
 use crate::domain::realm::ports::RealmService;
-use crate::domain::role::entities::{Role, RoleError};
-use crate::domain::role::ports::RoleService;
+use crate::domain::user::entities::UserError;
 use uuid::Uuid;
 
 #[derive(Clone)]
-pub struct GetRoleUseCase {
+pub struct ResetPasswordUseCase {
     realm_service: DefaultRealmService,
     user_service: DefaultUserService,
     client_service: DefaultClientService,
-    role_service: DefaultRoleService,
+    credential_service: DefaultCredentialService,
 }
 
-pub struct GetRoleUseCaseParams {
+pub struct ResetPasswordUseCaseParams {
     pub realm_name: String,
-    pub role_id: Uuid,
+    pub user_id: Uuid,
+    pub value: String,
 }
 
-impl GetRoleUseCase {
+impl ResetPasswordUseCase {
     pub fn new(
         realm_service: DefaultRealmService,
         user_service: DefaultUserService,
         client_service: DefaultClientService,
-        role_service: DefaultRoleService,
+        credential_service: DefaultCredentialService,
     ) -> Self {
         Self {
             realm_service,
             user_service,
             client_service,
-            role_service,
+            credential_service,
         }
     }
 
     pub async fn execute(
         &self,
         identity: Identity,
-        params: GetRoleUseCaseParams,
-    ) -> Result<Role, RoleError> {
+        params: ResetPasswordUseCaseParams,
+    ) -> Result<(), UserError> {
         let realm = self
             .realm_service
             .get_by_name(params.realm_name)
             .await
-            .map_err(|_| RoleError::Forbidden("Realm not found".to_string()))?;
+            .map_err(|_| UserError::InternalServerError)?;
 
         ensure_permissions(
-            RolePolicy::view(
+            UserPolicy::store(
                 identity,
-                realm,
+                realm.clone(),
                 self.user_service.clone(),
                 self.client_service.clone(),
             )
             .await
             .map_err(anyhow::Error::new),
-            "Insufficient permissions to view role in the realm",
+            "Insufficient permissions to reset password",
         )
-        .map_err(|e| RoleError::Forbidden(e.to_string()))?;
+        .map_err(|e| UserError::Forbidden(e.to_string()))?;
 
-        self.role_service.get_by_id(params.role_id).await
+        self.credential_service
+            .reset_password(params.user_id, params.value)
+            .await
+            .map_err(|_| UserError::InternalServerError)
     }
 }
