@@ -69,7 +69,8 @@
     "globals": "^15.15.0",
     "prettier": "^3.5.3",
     "sass-embedded": "^1.89.0",
-    "typescript": "~5.7.2",
+    "typed-openapi": "^1.5.0",
+    "typescript": "~5.7.3",
     "typescript-eslint": "^8.24.1",
     "vite": "^6.2.0"
   }
