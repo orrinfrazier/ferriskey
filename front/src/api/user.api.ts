@@ -1,13 +1,9 @@
-import { authStore } from "@/store/auth.store"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { apiClient, BaseQuery } from "."
-import { CreateUserSchema, UpdateUserSchema } from '../pages/user/validators'
-import { CredentialOverview, User } from "./core.interface"
-import { BulkDeleteUserResponse, CreateUserResponse, GetUserCredentialsResponse, UpdateUserResponse, UserResponse, UsersResponse, GetUserRolesResponse } from './api.interface'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { BaseQuery, tanstackApi } from '.'
 
 export interface UserMutateContract<T> {
-  realm?: string,
-  userId?: string,
+  realm?: string
+  userId?: string
   payload: T
 }
 
@@ -18,117 +14,86 @@ export interface GetUserQueryParams {
 
 export const useGetUsers = ({ realm }: BaseQuery) => {
   return useQuery({
-    queryKey: ["users"],
-    queryFn: async (): Promise<User[]> => {
-      const accessToken = authStore.getState().accessToken
-
-      const response = await apiClient.get<UsersResponse>(`/realms/${realm}/users`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-
-      return response.data.data
-    }
+    ...tanstackApi.get('/realms/{realm_name}/users', {
+      path: {
+        realm_name: realm || 'master',
+      },
+    }).queryOptions,
   })
 }
 
 export const useGetUser = ({ realm, userId }: GetUserQueryParams) => {
   return useQuery({
-    queryKey: ["user"],
-    queryFn: async (): Promise<User> => {
-      const accessToken = authStore.getState().accessToken
-
-      const response = await apiClient.get<UserResponse>(`/realms/${realm}/users/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-
-      return response.data.data
-    },
-    enabled: !!userId && !!realm
+    ...tanstackApi.get('/realms/{realm_name}/users/{user_id}', {
+      path: {
+        realm_name: realm!,
+        user_id: userId!,
+      },
+    }).queryOptions,
+    enabled: !!userId && !!realm,
   })
 }
 
 export const useGetUserCredentials = ({ realm, userId }: GetUserQueryParams) => {
   return useQuery({
-    queryKey: ["user", "credentials"],
-    queryFn: async (): Promise<CredentialOverview[]> => {
-      const accessToken = authStore.getState().accessToken
-
-      const { data: responseData } = await apiClient.get<GetUserCredentialsResponse>(`/realms/${realm}/users/${userId}/credentials`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-
-      return responseData.data
-    }
+    ...tanstackApi.get('/realms/{realm_name}/users/{user_id}/credentials', {
+      path: {
+        realm_name: realm!,
+        user_id: userId!,
+      },
+    }).queryOptions,
+    enabled: !!userId && !!realm,
   })
 }
 
 export const useCreateUser = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ realm, payload }: UserMutateContract<CreateUserSchema>): Promise<CreateUserResponse> => {
-      const accessToken = authStore.getState().accessToken
-      const response = await apiClient.post(`/realms/${realm}/users`, payload, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+    ...tanstackApi.mutation('post', '/realms/{realm_name}/users', async (res) => {
+      return res.json()
+    }).mutationOptions,
+    onSuccess: async (res) => {
+      console.log(res)
+      const queryKeys = tanstackApi.get('/realms/{realm_name}/users', {
+        path: {
+          realm_name: res.data.realm!.name,
         },
-      })
+      }).queryKey
 
-      return response.data
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["users"],
+      console.log(queryKeys)
+      await queryClient.invalidateQueries({
+        queryKey: [...queryKeys],
       })
-    }
+    },
   })
 }
 
 export const useUpdateUser = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ realm, userId, payload }: UserMutateContract<UpdateUserSchema>): Promise<UpdateUserResponse> => {
-      const accessToken = authStore.getState().accessToken
-      const response = await apiClient.put(`/realms/${realm}/users/${userId}`, payload, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-
-      return response.data
-    },
+    ...tanstackApi.mutation('post', '/realms/{realm_name}/users/{user_id}', async (res) => {
+      return res.json()
+    }).mutationOptions,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["user"],
+        queryKey: ['user'],
       })
-    }
+    },
   })
 }
 
 export const useBulkDeleteUser = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ realm, payload }: UserMutateContract<{ ids: string[] }>): Promise<BulkDeleteUserResponse> => {
-      const accessToken = authStore.getState().accessToken
-      const response = await apiClient.delete(`/realms/${realm}/users/bulk`, {
-        data: payload,
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-
-      return response.data
-    },
+    ...tanstackApi.mutation('delete', '/realms/{realm_name}/users/bulk', async (res) => {
+      const data = await res.json()
+      return data
+    }).mutationOptions,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["users"],
+        queryKey: ['users'],
       })
-    }
+    },
   })
 }
 
@@ -136,38 +101,36 @@ export const useResetUserPassword = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ realm, userId, payload }: UserMutateContract<{ value: string, credential_type: string, temporary: boolean }>): Promise<UpdateUserResponse> => {
-      const accessToken = authStore.getState().accessToken
-      const response = await apiClient.put(`/realms/${realm}/users/${userId}/reset-password`, payload, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+    ...tanstackApi.mutation(
+      'put',
+      '/realms/{realm_name}/users/{user_id}/reset-password',
+      async (res) => {
+        const data = await res.json()
+        return data
+      }
+    ).mutationOptions,
+    onSuccess: async (res) => {
+      const keys = tanstackApi.get('/realms/{realm_name}/users/{user_id}/credentials', {
+        path: {
+          realm_name: res.realm_name,
+          user_id: res.user_id,
         },
+      }).queryKey
+      await queryClient.invalidateQueries({
+        queryKey: keys,
       })
-
-      return response.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["user", "credentials"],
-      })
-    }
   })
 }
 
 export const useGetUserRoles = ({ realm, userId }: BaseQuery & { userId: string }) => {
   return useQuery({
-    queryKey: ["user-roles", realm, userId],
-    queryFn: async (): Promise<GetUserRolesResponse> => {
-      const accessToken = authStore.getState().accessToken
-
-      const response = await apiClient.get<GetUserRolesResponse>(`/realms/${realm}/users/${userId}/roles`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-
-      return response.data
-    },
+    ...tanstackApi.get('/realms/{realm_name}/users/{user_id}/roles', {
+      path: {
+        realm_name: realm!,
+        user_id: userId!,
+      },
+    }).queryOptions,
     enabled: !!realm && !!userId,
   })
 }
@@ -176,21 +139,19 @@ export const useAssignUserRole = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ realm, userId, payload }: UserMutateContract<{ roleId: string }>) => {
-      const accessToken = authStore.getState().accessToken
-
-      const response = await apiClient.post(`/realms/${realm}/users/${userId}/roles/${payload.roleId}`, {}, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+    ...tanstackApi.mutation('post', '/realms/{realm_name}/users/{user_id}/roles/{role_id}')
+      .mutationOptions,
+    onSuccess: async (res) => {
+      const data = await res.json()
+      const keys = tanstackApi.get('/realms/{realm_name}/users/{user_id}/roles', {
+        path: {
+          realm_name: data.realm_name,
+          user_id: data.user_id,
         },
+      }).queryKey
+      await queryClient.invalidateQueries({
+        queryKey: keys,
       })
-
-      return response.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["user-roles"]
-      })
-    }
   })
 }

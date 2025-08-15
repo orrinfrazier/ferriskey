@@ -1,4 +1,3 @@
-import { Role, User } from '@/api/core.interface'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -7,6 +6,9 @@ import { columns } from '../../columns/role-mapping.column'
 import { FormField } from '@/components/ui/form'
 import { UseFormReturn } from 'react-hook-form'
 import { AssignRoleSchema } from '../../schemas/assign-role.schema'
+import { Schemas } from '@/api/api.client'
+import User = Schemas.User
+import Role = Schemas.Role
 
 export interface RoleMappingModalProps {
   open: boolean

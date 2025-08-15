@@ -12,7 +12,7 @@ import { useFormChanges } from '@/hooks/use-form-changes'
 export default function PageRoleSettingsFeature() {
   const { realm_name, role_id } = useParams<RouterParams>()
 
-  const { data: role, isLoading } = useGetRole({
+  const { data: roleResponse, isLoading } = useGetRole({
     realm: realm_name || 'master',
     roleId: role_id,
   })
@@ -22,40 +22,47 @@ export default function PageRoleSettingsFeature() {
     resolver: zodResolver(updateRoleSchema),
     mode: 'onChange',
     defaultValues: {
-      name: role?.name || '',
-      description: role?.description || '',
+      name: roleResponse?.data.name || '',
+      description: roleResponse?.data.description || '',
     },
   })
 
   const hasChanges = useFormChanges(
     form,
-    role && {
-      name: role.name || '',
-      description: role.description || '',
+    roleResponse && {
+      name: roleResponse.data.name || '',
+      description: roleResponse.data.description || '',
     }
   )
 
   const handleSubmit = form.handleSubmit((values) => {
+    if (!realm_name || !role_id) return
+
     udpateRole({
-      payload: values,
-      realmName: realm_name || 'master',
-      roleId: role_id || '',
+      body: {
+        description: values.description,
+        name: values.name
+      },
+      path: {
+        realm_name: realm_name,
+        role_id: role_id
+      }
     })
   })
 
   useEffect(() => {
-    if (role) {
+    if (roleResponse) {
       form.reset({
-        name: role.name,
-        description: role.description || '',
+        name: roleResponse.data.name,
+        description: roleResponse.data.description || '',
       })
     }
-  }, [role])
+  }, [roleResponse])
 
   return (
     <Form {...form}>
       <PageRoleSettings
-        role={role}
+        role={roleResponse?.data}
         form={form}
         isLoading={isLoading}
         realmName={realm_name || 'master'}

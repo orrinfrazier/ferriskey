@@ -1,33 +1,27 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { authStore } from '@/store/auth.store.ts'
-import { apiClient } from '@/api/index.ts'
-import { DeleteUserCredentialResponse } from '@/api/api.interface.ts'
-
-export interface DeleteUserCredentialParams {
-  realm: string
-  userId: string
-  credentialId: string
-}
+import { tanstackApi } from '@/api/index.ts'
 
 export const useDeleteUserCredential = () => {
   const queryClient = useQueryClient()
-
   return useMutation({
-    mutationFn: async ({ realm, userId, credentialId }: DeleteUserCredentialParams): Promise<DeleteUserCredentialResponse> => {
-      const accessToken = authStore.getState().accessToken
+    ...tanstackApi.mutation(
+      'delete',
+      '/realms/{realm_name}/users/{user_id}/credentials/{credential_id}',
+      async (res) => {
+        return res.json()
+      }
+    ).mutationOptions,
+    onSuccess: async (payload) => {
+      const keys = tanstackApi.get('/realms/{realm_name}/users/{user_id}/credentials', {
+        path: {
+          realm_name: payload.realm_name,
+          user_id: payload.user_id,
+        },
+      }).queryKey
 
-      const response = await apiClient.delete<DeleteUserCredentialResponse>(`/realms/${realm}/users/${userId}/credentials/${credentialId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
+      await queryClient.invalidateQueries({
+        queryKey: keys,
       })
-
-      return response.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["user", "credentials"]
-      })
-    }
   })
 }

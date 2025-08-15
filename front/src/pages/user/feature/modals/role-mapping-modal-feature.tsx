@@ -8,8 +8,9 @@ import { useForm } from 'react-hook-form'
 import { assignRoleSchema, AssignRoleSchema } from '../../schemas/assign-role.schema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Form } from '@/components/ui/form'
-import { Role } from '@/api/core.interface'
 import { toast } from 'sonner'
+import { Schemas } from '@/api/api.client'
+import Role = Schemas.Role
 
 export default function RoleMappingModalFeature() {
   const { realm_name, user_id } = useParams<RouterParams>()
@@ -18,7 +19,7 @@ export default function RoleMappingModalFeature() {
 
   const { mutate: assignRole, data } = useAssignUserRole()
   const { data: rolesResponse } = useGetRoles({ realm: realm_name })
-  const { data: user } = useGetUser({
+  const { data: userResponse } = useGetUser({
     realm: realm_name,
     userId: user_id,
   })
@@ -46,13 +47,18 @@ export default function RoleMappingModalFeature() {
   }, [userRoles, rolesResponse])
 
   const handleSubmit = form.handleSubmit((values) => {
+    if (!user_id || !realm_name) {
+      toast.error('User or realm not found')
+      return
+    }
+
     for (const roleId of values.roleIds) {
       assignRole({
-        realm: realm_name,
-        userId: user_id,
-        payload: {
-          roleId,
-        },
+        path: {
+          realm_name,
+          user_id,
+          role_id: roleId
+        }
       })
     }
     form.reset()
@@ -67,7 +73,7 @@ export default function RoleMappingModalFeature() {
     }
   }, [data])
 
-  if (!user) {
+  if (!userResponse) {
     return null
   }
 
@@ -77,7 +83,7 @@ export default function RoleMappingModalFeature() {
         open={open}
         setOpen={setOpen}
         roles={availableRoles}
-        user={user}
+        user={userResponse.data}
         form={form}
         isValid={isValid}
         handleSubmit={handleSubmit}

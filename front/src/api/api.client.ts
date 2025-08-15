@@ -1,6 +1,6 @@
 export namespace Schemas {
   // <Schemas>
-  export type AssignRoleResponse = { message: string };
+  export type AssignRoleResponse = { message: string; realm_name: string; user_id: string };
   export type AuthResponse = { url: string };
   export type AuthenticateRequest = Partial<{ password: string | null; username: string | null }>;
   export type AuthenticationStatus = "Success" | "RequiresActions" | "RequiresOtpChallenge" | "Failed";
@@ -94,7 +94,7 @@ export namespace Schemas {
   };
   export type DeleteClientResponse = { message: string };
   export type DeleteRealmResponse = string;
-  export type DeleteUserCredentialResponse = { message: string };
+  export type DeleteUserCredentialResponse = { message: string; realm_name: string; user_id: string };
   export type DeleteUserResponse = { count: number };
   export type JwkKey = { alg: string; e: string; kid: string; kty: string; n: string; use_: string; x5c: string };
   export type GetCertsResponse = { keys: Array<JwkKey> };
@@ -130,6 +130,7 @@ export namespace Schemas {
     updated_at: string;
     value: string;
   };
+  export type ResetPasswordResponse = { message: string; realm_name: string; user_id: string };
   export type ResetPasswordValidator = Partial<{ credential_type: string; temporary: boolean; value: string }>;
   export type SetupOtpResponse = { issuer: string; otpauth_url: string; secret: string };
   export type TokenRequestValidator = Partial<{
@@ -141,7 +142,7 @@ export namespace Schemas {
     refresh_token: string | null;
     username: string | null;
   }>;
-  export type UnassignRoleResponse = { message: string };
+  export type UnassignRoleResponse = { message: string; realm_name: string; user_id: string };
   export type UpdateClientValidator = Partial<{
     client_id: string | null;
     enabled: boolean | null;
@@ -189,13 +190,6 @@ export namespace Endpoints {
       body: Schemas.CreateRealmValidator;
     };
     response: Schemas.Realm;
-  };
-  export type get_Get_user_realms = {
-    method: "GET";
-    path: "/realms/users/@me/realms";
-    requestFormat: "json";
-    parameters: never;
-    response: Schemas.UserRealmsResponse;
   };
   export type get_Get_realm = {
     method: "GET";
@@ -487,6 +481,15 @@ export namespace Endpoints {
     };
     response: Schemas.CreateUserResponse;
   };
+  export type get_Get_user_realms = {
+    method: "GET";
+    path: "/realms/{realm_name}/users/@me/realms";
+    requestFormat: "json";
+    parameters: {
+      path: { realm_name: string };
+    };
+    response: Schemas.UserRealmsResponse;
+  };
   export type delete_Bulk_delete_user = {
     method: "DELETE";
     path: "/realms/{realm_name}/users/bulk";
@@ -552,7 +555,7 @@ export namespace Endpoints {
 
       body: Schemas.ResetPasswordValidator;
     };
-    response: unknown;
+    response: Schemas.ResetPasswordResponse;
   };
   export type get_Get_user_roles = {
     method: "GET";
@@ -589,7 +592,6 @@ export namespace Endpoints {
 export type EndpointByMethod = {
   get: {
     "/realms": Endpoints.get_Fetch_realm;
-    "/realms/users/@me/realms": Endpoints.get_Get_user_realms;
     "/realms/{name}": Endpoints.get_Get_realm;
     "/realms/{realm_name}/.well-known/openid-configuration": Endpoints.get_Get_openid_configuration;
     "/realms/{realm_name}/clients": Endpoints.get_Get_clients;
@@ -602,6 +604,7 @@ export type EndpointByMethod = {
     "/realms/{realm_name}/roles": Endpoints.get_Get_roles;
     "/realms/{realm_name}/roles/{role_id}": Endpoints.get_Get_role;
     "/realms/{realm_name}/users": Endpoints.get_Get_users;
+    "/realms/{realm_name}/users/@me/realms": Endpoints.get_Get_user_realms;
     "/realms/{realm_name}/users/{user_id}": Endpoints.get_Get_user;
     "/realms/{realm_name}/users/{user_id}/credentials": Endpoints.get_Get_user_credentials;
     "/realms/{realm_name}/users/{user_id}/roles": Endpoints.get_Get_user_roles;
