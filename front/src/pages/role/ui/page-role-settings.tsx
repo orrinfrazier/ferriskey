@@ -77,7 +77,7 @@ export default function PageRoleSettings({
           <div>
             <h1 className='text-2xl font-bold tracking-tight'>Rôle introuvable</h1>
             <p className='text-muted-foreground'>
-              Le rôle demandé n'existe pas dans le realm {realmName}
+              The requested role does not exist in the realm {realmName}
             </p>
           </div>
         </div>

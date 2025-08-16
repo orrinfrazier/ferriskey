@@ -54,12 +54,12 @@ export default function PageUsersOverview({
             onClick: (user) => navigate(`/realms/${realmName}/users/${user.id}/overview`),
           },
           {
-            label: 'Voir les détails',
+            label: 'View details',
             icon: <ExternalLink className='h-4 w-4' />,
             onClick: (user) => console.log('View details for user:', user.id),
           },
           {
-            label: 'Supprimer',
+            label: 'Delete',
             icon: <Trash2 className='h-4 w-4' />,
             variant: 'destructive',
             onClick: (user) => handleDeleteSelected([user]),
