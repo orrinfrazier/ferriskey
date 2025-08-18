@@ -1,11 +1,11 @@
 services:
   postgres:
-    image: postgres:latest
+    image: docker.io/postgres:latest
     container_name: ferris_key
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ferris_key
+      POSTGRES_DB: ferriskey
     ports:
       - "5432:5432"
     volumes:
