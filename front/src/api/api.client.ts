@@ -168,6 +168,8 @@ export namespace Schemas {
     enabled: boolean | null
     name: string | null
   }>
+  export type UpdatePasswordRequest = Partial<{ value: string }>
+  export type UpdatePasswordResponse = { message: string }
   export type UpdateRealmSettingValidator = { default_signing_algorithm: string }
   export type UpdateRealmValidator = { name: string }
   export type UpdateRedirectUriValidator = Partial<{ enabled: boolean }>
@@ -396,6 +398,15 @@ export namespace Endpoints {
     }
     response: Schemas.SetupOtpResponse
   }
+  export type post_Update_password = {
+    method: 'POST'
+    path: '/realms/{realm_name}/login-actions/update-password'
+    requestFormat: 'json'
+    parameters: {
+      body: Schemas.UpdatePasswordRequest
+    }
+    response: Schemas.UpdatePasswordResponse
+  }
   export type post_Verify_otp = {
     method: 'POST'
     path: '/realms/{realm_name}/login-actions/verify-otp'
@@ -528,8 +539,8 @@ export namespace Endpoints {
     }
     response: Schemas.UserResponse
   }
-  export type post_Update_user = {
-    method: 'POST'
+  export type put_Update_user = {
+    method: 'PUT'
     path: '/realms/{realm_name}/users/{user_id}'
     requestFormat: 'json'
     parameters: {
@@ -636,10 +647,10 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/clients/{client_id}/roles': Endpoints.post_Create_role
     '/realms/{realm_name}/login-actions/authenticate': Endpoints.post_Authenticate
     '/realms/{realm_name}/login-actions/challenge-otp': Endpoints.post_Challenge_otp
+    '/realms/{realm_name}/login-actions/update-password': Endpoints.post_Update_password
     '/realms/{realm_name}/login-actions/verify-otp': Endpoints.post_Verify_otp
     '/realms/{realm_name}/protocol/openid-connect/token': Endpoints.post_Exchange_token
     '/realms/{realm_name}/users': Endpoints.post_Create_user
-    '/realms/{realm_name}/users/{user_id}': Endpoints.post_Update_user
     '/realms/{realm_name}/users/{user_id}/roles/{role_id}': Endpoints.post_Assign_role
   }
   put: {
@@ -647,6 +658,7 @@ export type EndpointByMethod = {
     '/realms/{name}/settings': Endpoints.put_Update_realm_setting
     '/realms/{realm_name}/clients/{client_id}/redirects/{uri_id}': Endpoints.put_Update_redirect_uri
     '/realms/{realm_name}/roles/{role_id}': Endpoints.put_Update_role
+    '/realms/{realm_name}/users/{user_id}': Endpoints.put_Update_user
     '/realms/{realm_name}/users/{user_id}/reset-password': Endpoints.put_Reset_password
   }
   delete: {
