@@ -1,0 +1,49 @@
+use std::fmt::{Debug, Display};
+
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, ToSchema)]
+pub enum WebhookTrigger {
+    UserCreated,
+    UserUpdated,
+    UserDeleted,
+    UserBulkDeleted,
+    UserAssignRole,
+    UserUnassignRole,
+    UserDeleteCredentials,
+    AuthResetPassword,
+}
+
+impl Display for WebhookTrigger {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WebhookTrigger::UserCreated => write!(f, "user.created"),
+            WebhookTrigger::UserUpdated => write!(f, "user.updated"),
+            WebhookTrigger::UserDeleted => write!(f, "user.deleted"),
+            WebhookTrigger::UserBulkDeleted => write!(f, "user.bulk_deleted"),
+            WebhookTrigger::UserAssignRole => write!(f, "user.assign.role"),
+            WebhookTrigger::UserUnassignRole => write!(f, "user.unassign.role"),
+            WebhookTrigger::UserDeleteCredentials => write!(f, "user.credentials_deleted"),
+            WebhookTrigger::AuthResetPassword => write!(f, "auth.reset_password"),
+        }
+    }
+}
+
+impl TryFrom<String> for WebhookTrigger {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "user.created" => Ok(WebhookTrigger::UserCreated),
+            "user.updated" => Ok(WebhookTrigger::UserUpdated),
+            "user.deleted" => Ok(WebhookTrigger::UserDeleted),
+            "user.bulk_deleted" => Ok(WebhookTrigger::UserBulkDeleted),
+            "user.assign.role" => Ok(WebhookTrigger::UserAssignRole),
+            "user.unassign.role" => Ok(WebhookTrigger::UserUnassignRole),
+            "user.credentials_deleted" => Ok(WebhookTrigger::UserDeleteCredentials),
+            "auth.reset_password" => Ok(WebhookTrigger::AuthResetPassword),
+            _ => Err("Invalid webhook trigger".to_string()),
+        }
+    }
+}

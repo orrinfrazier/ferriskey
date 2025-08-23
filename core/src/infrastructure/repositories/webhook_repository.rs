@@ -1,10 +1,14 @@
 use chrono::Utc;
 use sea_orm::ActiveValue::Set;
-use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
+use sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, RelationTrait,
+};
+use tracing::error;
 use uuid::Uuid;
 
 use crate::domain::common::generate_timestamp;
-use crate::domain::webhook::entities::{Webhook, WebhookError};
+use crate::domain::webhook::entities::webhook_trigger::WebhookTrigger;
+use crate::domain::webhook::entities::{errors::WebhookError, webhook::Webhook};
 use crate::domain::webhook::ports::WebhookRepository;
 use crate::entity::webhook_subscribers::{
     ActiveModel as WebhookSubscriberActiveModel, Column as WebhookSubscriberColumn,
@@ -12,6 +16,7 @@ use crate::entity::webhook_subscribers::{
 };
 use crate::entity::webhooks::{
     ActiveModel as WebhookActiveModel, Column as WebhookColumn, Entity as WebhookEntity,
+    Relation as WebhookRelation,
 };
 
 #[derive(Debug, Clone)]
@@ -39,6 +44,31 @@ impl WebhookRepository for PostgresWebhookRepository {
         Ok(webhooks)
     }
 
+    async fn fetch_webhooks_by_subscriber(
+        &self,
+        realm_id: Uuid,
+        subscriber: WebhookTrigger,
+    ) -> Result<Vec<Webhook>, WebhookError> {
+        let webhooks = WebhookEntity::find()
+            .join(
+                sea_orm::JoinType::InnerJoin,
+                WebhookRelation::WebhookSubscribers.def(),
+            )
+            .filter(WebhookColumn::RealmId.eq(realm_id))
+            .filter(WebhookSubscriberColumn::Name.eq(subscriber.to_string()))
+            .all(&self.db)
+            .await
+            .map_err(|e| {
+                error!("Failed to fetch webhooks by subscriber: {}", e);
+                WebhookError::InternalServerError
+            })?
+            .into_iter()
+            .map(Webhook::from)
+            .collect();
+
+        Ok(webhooks)
+    }
+
     async fn get_webhook_by_id(
         &self,
         webhook_id: Uuid,
@@ -59,7 +89,7 @@ impl WebhookRepository for PostgresWebhookRepository {
         &self,
         realm_id: Uuid,
         endpoint: String,
-        subscribers: Vec<String>,
+        subscribers: Vec<WebhookTrigger>,
     ) -> Result<Webhook, WebhookError> {
         let (_, timestamp) = generate_timestamp();
         let subscription_id = Uuid::new_v7(timestamp);
@@ -98,7 +128,7 @@ impl WebhookRepository for PostgresWebhookRepository {
         &self,
         id: Uuid,
         endpoint: String,
-        subscribers: Vec<String>,
+        subscribers: Vec<WebhookTrigger>,
     ) -> Result<Webhook, WebhookError> {
         let mut webhook = WebhookEntity::update(WebhookActiveModel {
             endpoint: Set(endpoint),
