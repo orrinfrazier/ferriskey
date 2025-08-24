@@ -15,7 +15,8 @@ export namespace Schemas {
     token?: (string | null) | undefined
     url?: (string | null) | undefined
   }
-  export type BulkDeleteUserResponse = { count: number }
+  export type BulkDeleteUserResponse = { count: number; realm_name: string }
+  export type BulkDeleteUserValidator = Partial<{ ids: Array<string> }>
   export type ChallengeOtpResponse = { url: string }
   export type Client = {
     client_id: string
@@ -98,7 +99,7 @@ export namespace Schemas {
     user_id: string
     user_label?: (string | null) | undefined
   }
-  export type DeleteClientResponse = { message: string }
+  export type DeleteClientResponse = { message: string; realm_name: string }
   export type DeleteRealmResponse = string
   export type DeleteUserCredentialResponse = {
     message: string
@@ -192,6 +193,15 @@ export namespace Schemas {
   export type UserResponse = { data: User }
   export type UsersResponse = { data: Array<User> }
   export type VerifyOtpResponse = { message: string }
+  export type WebhookSubscriber = { id: string; name: string; webhook_id: string }
+  export type Webhook = {
+    created_at: string
+    endpoint: string
+    id: string
+    subscribers: Array<WebhookSubscriber>
+    triggered_at?: (string | null) | undefined
+    updated_at: string
+  }
 
   // </Schemas>
 }
@@ -528,7 +538,9 @@ export namespace Endpoints {
     path: '/realms/{realm_name}/users/bulk'
     requestFormat: 'json'
     parameters: {
-      path: { realm_name: string; ids: Array<string> }
+      path: { realm_name: string }
+
+      body: Schemas.BulkDeleteUserValidator
     }
     response: Schemas.BulkDeleteUserResponse
   }
@@ -617,6 +629,41 @@ export namespace Endpoints {
     }
     response: Schemas.UnassignRoleResponse
   }
+  export type get_Fetch_webhooks = {
+    method: 'GET'
+    path: '/realms/{realm_name}/webhooks'
+    requestFormat: 'json'
+    parameters: never
+    response: Array<Schemas.Webhook>
+  }
+  export type put_Update_webhook = {
+    method: 'PUT'
+    path: '/realms/{realm_name}/webhooks'
+    requestFormat: 'json'
+    parameters: never
+    response: Schemas.Webhook
+  }
+  export type post_Create_webhook = {
+    method: 'POST'
+    path: '/realms/{realm_name}/webhooks'
+    requestFormat: 'json'
+    parameters: never
+    response: Schemas.Webhook
+  }
+  export type delete_Delete_webhook = {
+    method: 'DELETE'
+    path: '/realms/{realm_name}/webhooks'
+    requestFormat: 'json'
+    parameters: never
+    response: unknown
+  }
+  export type get_Get_webhook = {
+    method: 'GET'
+    path: '/realms/{realm_name}/webhooks/{webhook_id}'
+    requestFormat: 'json'
+    parameters: never
+    response: Schemas.Webhook
+  }
 
   // </Endpoints>
 }
@@ -641,6 +688,8 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/users/{user_id}': Endpoints.get_Get_user
     '/realms/{realm_name}/users/{user_id}/credentials': Endpoints.get_Get_user_credentials
     '/realms/{realm_name}/users/{user_id}/roles': Endpoints.get_Get_user_roles
+    '/realms/{realm_name}/webhooks': Endpoints.get_Fetch_webhooks
+    '/realms/{realm_name}/webhooks/{webhook_id}': Endpoints.get_Get_webhook
   }
   post: {
     '/realms': Endpoints.post_Create_realm
@@ -654,6 +703,7 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/protocol/openid-connect/token': Endpoints.post_Exchange_token
     '/realms/{realm_name}/users': Endpoints.post_Create_user
     '/realms/{realm_name}/users/{user_id}/roles/{role_id}': Endpoints.post_Assign_role
+    '/realms/{realm_name}/webhooks': Endpoints.post_Create_webhook
   }
   put: {
     '/realms/{name}': Endpoints.put_Update_realm
@@ -662,6 +712,7 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/roles/{role_id}': Endpoints.put_Update_role
     '/realms/{realm_name}/users/{user_id}': Endpoints.put_Update_user
     '/realms/{realm_name}/users/{user_id}/reset-password': Endpoints.put_Reset_password
+    '/realms/{realm_name}/webhooks': Endpoints.put_Update_webhook
   }
   delete: {
     '/realms/{name}': Endpoints.delete_Delete_realm
@@ -671,6 +722,7 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/users/{user_id}': Endpoints.delete_Delete_user
     '/realms/{realm_name}/users/{user_id}/credentials/{credential_id}': Endpoints.delete_Delete_user_credential
     '/realms/{realm_name}/users/{user_id}/roles/{role_id}': Endpoints.delete_Unassign_role
+    '/realms/{realm_name}/webhooks': Endpoints.delete_Delete_webhook
   }
   patch: {
     '/realms/{realm_name}/clients/{client_id}': Endpoints.patch_Update_client
@@ -740,7 +792,7 @@ type MaybeOptionalArg<T> = RequiredKeys<T> extends never ? [config?: T] : [confi
 export class ApiClient {
   baseUrl: string = ''
 
-  constructor(public fetcher: Fetcher) { }
+  constructor(public fetcher: Fetcher) {}
 
   setBaseUrl(baseUrl: string) {
     this.baseUrl = baseUrl
