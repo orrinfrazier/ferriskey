@@ -1,25 +1,24 @@
 use crate::domain::common::AppConfig;
 use crate::infrastructure::auth_session::AuthSessionRepoAny;
-use crate::infrastructure::client::ClientRepoAny;
-use crate::infrastructure::client::repositories::RedirectUriRepoAny;
+use crate::infrastructure::client::repositories::client_postgres_repository::PostgresClientRepository;
+use crate::infrastructure::client::repositories::redirect_uri_postgres_repository::PostgresRedirectUriRepository;
+use crate::infrastructure::client::repositories::{ClientRepoAny, RedirectUriRepoAny};
 use crate::infrastructure::credential::CredentialRepoAny;
 use crate::infrastructure::db::postgres::{Postgres, PostgresConfig};
 use crate::infrastructure::hasher::HasherRepoAny;
 use crate::infrastructure::health::HealthCheckRepoAny;
 use crate::infrastructure::health::repositories::PostgresHealthCheckRepository;
 use crate::infrastructure::jwt::KeyStoreRepoAny;
-use crate::infrastructure::realm::RealmRepoAny;
+use crate::infrastructure::realm::repositories::RealmRepoAny;
+use crate::infrastructure::realm::repositories::realm_postgres_repository::PostgresRealmRepository;
 use crate::infrastructure::refresh_token::RefreshTokenRepoAny;
 use crate::infrastructure::repositories::argon2_hasher::Argon2HasherRepository;
 use crate::infrastructure::repositories::auth_session_repository::PostgresAuthSessionRepository;
-use crate::infrastructure::repositories::client_repository::PostgresClientRepository;
 use crate::infrastructure::repositories::credential_repository::PostgresCredentialRepository;
 use crate::infrastructure::repositories::keystore_repository::PostgresKeyStoreRepository;
-use crate::infrastructure::repositories::realm_repository::PostgresRealmRepository;
-use crate::infrastructure::repositories::redirect_uri_repository::PostgresRedirectUriRepository;
 use crate::infrastructure::repositories::refresh_token_repository::PostgresRefreshTokenRepository;
-use crate::infrastructure::repositories::role_repository::PostgresRoleRepository;
-use crate::infrastructure::role::RoleRepoAny;
+use crate::infrastructure::role::repositories::RoleRepoAny;
+use crate::infrastructure::role::repositories::role_postgres_repository::PostgresRoleRepository;
 use crate::infrastructure::user::UserRepoAny;
 use crate::infrastructure::user::repositories::user_required_action_repository::{
     PostgresUserRequiredActionRepository, UserRequiredActionRepoAny,
@@ -32,14 +31,9 @@ use crate::infrastructure::webhook::repository::{PostgresWebhookRepository, Webh
 
 pub mod argon2_hasher;
 pub mod auth_session_repository;
-pub mod client_repository;
 pub mod credential_repository;
 pub mod keystore_repository;
-pub mod realm_repository;
-pub mod redirect_uri_repository;
 pub mod refresh_token_repository;
-pub mod role_repository;
-pub mod user_session_repository;
 
 pub struct RepoBundle {
     pub realm_repository: RealmRepoAny,

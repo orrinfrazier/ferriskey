@@ -22,16 +22,15 @@ use crate::domain::{
     user::services::{user_role_service::UserRoleServiceImpl, user_service::UserServiceImpl},
 };
 use crate::infrastructure::auth_session::AuthSessionRepoAny;
-use crate::infrastructure::client::ClientRepoAny;
-use crate::infrastructure::client::repositories::RedirectUriRepoAny;
+use crate::infrastructure::client::repositories::{ClientRepoAny, RedirectUriRepoAny};
 use crate::infrastructure::credential::CredentialRepoAny;
 use crate::infrastructure::hasher::HasherRepoAny;
 use crate::infrastructure::health::HealthCheckRepoAny;
 use crate::infrastructure::jwt::KeyStoreRepoAny;
-use crate::infrastructure::realm::RealmRepoAny;
+use crate::infrastructure::realm::repositories::RealmRepoAny;
 use crate::infrastructure::refresh_token::RefreshTokenRepoAny;
 use crate::infrastructure::repositories::build_repos_from_env;
-use crate::infrastructure::role::RoleRepoAny;
+use crate::infrastructure::role::repositories::RoleRepoAny;
 use crate::infrastructure::user::UserRepoAny;
 use crate::infrastructure::user::repositories::user_required_action_repository::UserRequiredActionRepoAny;
 use crate::infrastructure::user::repositories::user_role_repository::UserRoleRepoAny;
