@@ -22,6 +22,7 @@ export namespace Schemas {
     client_id: string
     client_type: string
     created_at: string
+    direct_access_grants_enabled: boolean
     enabled: boolean
     id: string
     name: string
@@ -31,19 +32,18 @@ export namespace Schemas {
     redirect_uris?: (Array<RedirectUri> | null) | undefined
     secret?: (string | null) | undefined
     service_account_enabled: boolean
-    direct_access_grants_enabled: boolean
     updated_at: string
   }
   export type ClientsResponse = { data: Array<Client> }
   export type CreateClientValidator = Partial<{
     client_id: string
     client_type: string
+    direct_access_grants_enabled: boolean
     enabled: boolean
     name: string
     protocol: string
     public_client: boolean
     service_account_enabled: boolean
-    direct_access_grants_enabled: boolean
   }>
   export type CreateRealmValidator = Partial<{ name: string }>
   export type CreateRedirectUriValidator = Partial<{ enabled: boolean; value: string }>
@@ -89,6 +89,50 @@ export namespace Schemas {
     lastname: string
     username: string
   }>
+  export type WebhookTrigger =
+    | 'user.created'
+    | 'user.updated'
+    | 'user.deleted'
+    | 'user.bulk_deleted'
+    | 'user.assign.role'
+    | 'user.unassign.role'
+    | 'user.credentials.deleted'
+    | 'auth.reset_password'
+    | 'client.created'
+    | 'client.updated'
+    | 'client.deleted'
+    | 'client.role.created'
+    | 'client.role.updated'
+    | 'redirect_uri.created'
+    | 'redirect_uri.updated'
+    | 'redirect_uri.deleted'
+    | 'role.created'
+    | 'role.updated'
+    | 'realm.created'
+    | 'realm.updated'
+    | 'realm.deleted'
+    | 'realm.settings.updated'
+    | 'webhook.created'
+    | 'webhook.updated'
+    | 'webhook.deleted'
+  export type WebhookSubscriber = { id: string; name: WebhookTrigger; webhook_id: string }
+  export type Webhook = {
+    created_at: string
+    description?: (string | null) | undefined
+    endpoint: string
+    id: string
+    name?: (string | null) | undefined
+    subscribers: Array<WebhookSubscriber>
+    triggered_at?: (string | null) | undefined
+    updated_at: string
+  }
+  export type CreateWebhookResponse = { data: Webhook }
+  export type CreateWebhookValidator = Partial<{
+    description: string | null
+    endpoint: string
+    name: string | null
+    subscribers: Array<WebhookTrigger>
+  }>
   export type CredentialData = { algorithm: string; hash_iterations: number }
   export type CredentialOverview = {
     created_at: string
@@ -107,6 +151,7 @@ export namespace Schemas {
     user_id: string
   }
   export type DeleteUserResponse = { count: number }
+  export type DeleteWebhookResponse = { message: string; realm_name: string }
   export type JwkKey = {
     alg: string
     e: string
@@ -132,6 +177,7 @@ export namespace Schemas {
   export type GetRolesResponse = { data: Array<Role> }
   export type GetUserCredentialsResponse = { data: Array<CredentialOverview> }
   export type GetUserRolesResponse = { data: Array<Role> }
+  export type GetWebhooksResponse = { data: Array<Webhook> }
   export type GrantType = 'authorization_code' | 'password' | 'client_credentials' | 'refresh_token'
   export type JwtToken = {
     access_token: string
@@ -168,6 +214,7 @@ export namespace Schemas {
   export type UnassignRoleResponse = { message: string; realm_name: string; user_id: string }
   export type UpdateClientValidator = Partial<{
     client_id: string | null
+    direct_access_grants_enabled: boolean | null
     enabled: boolean | null
     name: string | null
   }>
@@ -193,15 +240,6 @@ export namespace Schemas {
   export type UserResponse = { data: User }
   export type UsersResponse = { data: Array<User> }
   export type VerifyOtpResponse = { message: string }
-  export type WebhookSubscriber = { id: string; name: string; webhook_id: string }
-  export type Webhook = {
-    created_at: string
-    endpoint: string
-    id: string
-    subscribers: Array<WebhookSubscriber>
-    triggered_at?: (string | null) | undefined
-    updated_at: string
-  }
 
   // </Schemas>
 }
@@ -633,8 +671,10 @@ export namespace Endpoints {
     method: 'GET'
     path: '/realms/{realm_name}/webhooks'
     requestFormat: 'json'
-    parameters: never
-    response: Array<Schemas.Webhook>
+    parameters: {
+      path: { realm_name: string }
+    }
+    response: Schemas.GetWebhooksResponse
   }
   export type put_Update_webhook = {
     method: 'PUT'
@@ -647,22 +687,30 @@ export namespace Endpoints {
     method: 'POST'
     path: '/realms/{realm_name}/webhooks'
     requestFormat: 'json'
-    parameters: never
-    response: Schemas.Webhook
-  }
-  export type delete_Delete_webhook = {
-    method: 'DELETE'
-    path: '/realms/{realm_name}/webhooks'
-    requestFormat: 'json'
-    parameters: never
-    response: unknown
+    parameters: {
+      path: { realm_name: string }
+
+      body: Schemas.CreateWebhookValidator
+    }
+    response: Schemas.CreateWebhookResponse
   }
   export type get_Get_webhook = {
     method: 'GET'
     path: '/realms/{realm_name}/webhooks/{webhook_id}'
     requestFormat: 'json'
-    parameters: never
+    parameters: {
+      path: { webhook_id: string }
+    }
     response: Schemas.Webhook
+  }
+  export type delete_Delete_webhook = {
+    method: 'DELETE'
+    path: '/realms/{realm_name}/webhooks/{webhook_id}'
+    requestFormat: 'json'
+    parameters: {
+      path: { realm_name: string; webhook_id: string }
+    }
+    response: Schemas.DeleteWebhookResponse
   }
 
   // </Endpoints>
@@ -722,7 +770,7 @@ export type EndpointByMethod = {
     '/realms/{realm_name}/users/{user_id}': Endpoints.delete_Delete_user
     '/realms/{realm_name}/users/{user_id}/credentials/{credential_id}': Endpoints.delete_Delete_user_credential
     '/realms/{realm_name}/users/{user_id}/roles/{role_id}': Endpoints.delete_Unassign_role
-    '/realms/{realm_name}/webhooks': Endpoints.delete_Delete_webhook
+    '/realms/{realm_name}/webhooks/{webhook_id}': Endpoints.delete_Delete_webhook
   }
   patch: {
     '/realms/{realm_name}/clients/{client_id}': Endpoints.patch_Update_client
