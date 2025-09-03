@@ -1,4 +1,5 @@
 use crate::application::common::services::ServiceBundle;
+use crate::application::role::use_cases::delete_role_use_case::DeleteRoleUseCase;
 use crate::application::role::use_cases::get_role_use_case::GetRoleUseCase;
 use crate::application::role::use_cases::get_roles_use_case::GetRolesUseCase;
 use crate::application::role::use_cases::update_role_permissions_use_case::UpdateRolePermissionsUseCase;
@@ -15,6 +16,7 @@ pub struct RoleUseCase {
     pub get_roles_use_case: GetRolesUseCase,
     pub update_role_permissions_use_case: UpdateRolePermissionsUseCase,
     pub update_role_use_case: UpdateRoleUseCase,
+    pub delete_role_use_case: DeleteRoleUseCase,
 }
 
 impl RoleUseCase {
@@ -45,6 +47,12 @@ impl RoleUseCase {
                 service_bundle.client_service.clone(),
                 service_bundle.role_service.clone(),
                 service_bundle.webhook_notifier_service.clone(),
+            ),
+            delete_role_use_case: DeleteRoleUseCase::new(
+                service_bundle.realm_service.clone(),
+                service_bundle.user_service.clone(),
+                service_bundle.client_service.clone(),
+                service_bundle.role_service.clone(),
             ),
         }
     }
