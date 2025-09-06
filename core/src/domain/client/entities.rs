@@ -5,7 +5,10 @@ use utoipa::ToSchema;
 use uuid::{NoContext, Timestamp, Uuid};
 
 use crate::domain::{
-    client::{entities::redirect_uri::RedirectUri, value_objects::CreateRedirectUriRequest},
+    client::{
+        entities::redirect_uri::RedirectUri,
+        value_objects::{CreateRedirectUriRequest, UpdateClientRequest},
+    },
     webhook::entities::errors::WebhookError,
 };
 
@@ -110,4 +113,55 @@ pub struct CreateRedirectUriInput {
     pub client_id: Uuid,
     pub realm_name: String,
     pub payload: CreateRedirectUriRequest,
+}
+
+pub struct CreateRoleInput {
+    pub realm_name: String,
+    pub client_id: Uuid,
+    pub description: Option<String>,
+    pub name: String,
+    pub permissions: Vec<String>,
+}
+
+pub struct DeleteClientInput {
+    pub realm_name: String,
+    pub client_id: Uuid,
+}
+
+pub struct DeleteRedirectUriInput {
+    pub realm_name: String,
+    pub client_id: Uuid,
+    pub uri_id: Uuid,
+}
+
+pub struct GetClientInput {
+    pub client_id: Uuid,
+    pub realm_name: String,
+}
+
+pub struct GetClientRolesInput {
+    pub client_id: Uuid,
+    pub realm_name: String,
+}
+
+pub struct GetRedirectUrisInput {
+    pub realm_name: String,
+    pub client_id: Uuid,
+}
+
+pub struct GetClientsInput {
+    pub realm_name: String,
+}
+
+pub struct UpdateClientInput {
+    pub realm_name: String,
+    pub client_id: Uuid,
+    pub payload: UpdateClientRequest,
+}
+
+pub struct UpdateRedirectUriInput {
+    pub realm_name: String,
+    pub client_id: Uuid,
+    pub redirect_uri_id: Uuid,
+    pub enabled: bool,
 }

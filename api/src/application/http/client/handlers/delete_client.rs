@@ -6,8 +6,8 @@ use axum::{
     Extension,
     extract::{Path, State},
 };
-use ferriskey_core::application::client::use_cases::delete_client_use_case::DeleteClientUseCaseParams;
 use ferriskey_core::domain::authentication::value_objects::Identity;
+use ferriskey_core::domain::client::{entities::DeleteClientInput, ports::ClientService};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 use utoipa::ToSchema;
@@ -42,12 +42,12 @@ pub async fn delete_client(
         "Deleting client with ID {} in realm {}",
         client_id, realm_name
     );
+
     state
-        .use_case_bundle
-        .delete_client_use_case
-        .execute(
+        .service
+        .delete_client(
             identity,
-            DeleteClientUseCaseParams {
+            DeleteClientInput {
                 client_id,
                 realm_name: realm_name.clone(),
             },
