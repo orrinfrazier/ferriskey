@@ -158,9 +158,20 @@ impl CoreService for FerriskeyService {
             .get_by_name(config.master_realm_name.clone())
             .await
         {
-            Ok(realm) => {
+            Ok(Some(realm)) => {
                 tracing::info!("{} already exists", config.master_realm_name);
-                realm.ok_or(CoreError::InvalidRealm)?
+                realm
+            }
+            Ok(None) => {
+                tracing::info!("creating master realm");
+                let realm = self
+                    .realm_repository
+                    .create_realm(config.master_realm_name.clone())
+                    .await
+                    .map_err(|_| CoreError::InvalidRealm)?;
+
+                tracing::info!("{} realm created", config.master_realm_name);
+                realm
             }
             Err(_) => {
                 tracing::info!("creating master realm");
