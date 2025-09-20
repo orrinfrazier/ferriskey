@@ -1,5 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use futures::future::try_join_all;
 use hmac::{Hmac, Mac};
 use rand::RngCore;
 use sha1::Sha1;
@@ -10,17 +11,20 @@ use crate::{
     domain::{
         authentication::{ports::AuthSessionRepository, value_objects::Identity},
         common::{entities::app_errors::CoreError, generate_random_string},
-        credential::ports::CredentialRepository,
+        credential::{entities::Credential, ports::CredentialRepository},
         crypto::ports::HasherRepository,
         trident::{
             entities::TotpSecret,
             ports::{
-                ChallengeOtpInput, ChallengeOtpOutput, SetupOtpInput, SetupOtpOutput,
-                TridentService, UpdatePasswordInput, VerifyOtpInput, VerifyOtpOutput,
+                BurnRecoveryCodeInput, BurnRecoveryCodeOutput, ChallengeOtpInput,
+                ChallengeOtpOutput, GenerateRecoveryCodeInput, GenerateRecoveryCodeOutput,
+                RecoveryCodeRepository, SetupOtpInput, SetupOtpOutput, TridentService,
+                UpdatePasswordInput, VerifyOtpInput, VerifyOtpOutput,
             },
         },
         user::{entities::RequiredAction, ports::UserRequiredActionRepository},
     },
+    infrastructure::recovery_code::formatters::RecoveryCodeFormat,
 };
 
 type HmacSha1 = Hmac<Sha1>;
@@ -97,6 +101,155 @@ fn verify(secret: &TotpSecret, code: &str) -> Result<bool, CoreError> {
 }
 
 impl TridentService for FerriskeyService {
+    async fn generate_recovery_code(
+        &self,
+        identity: Identity,
+        input: GenerateRecoveryCodeInput,
+    ) -> Result<GenerateRecoveryCodeOutput, CoreError> {
+        let user = match identity {
+            Identity::User(user) => user,
+            _ => return Err(CoreError::Forbidden("is not user".to_string())),
+        };
+
+        let format =
+            RecoveryCodeFormat::try_from(input.format).map_err(CoreError::RecoveryCodeGenError)?;
+
+        let stored_codes = self
+            .credential_repository
+            .get_credentials_by_user_id(user.id)
+            .await
+            .map_err(|_| CoreError::InternalServerError)?
+            .into_iter()
+            .filter(|cred| cred.credential_type.as_str() == "recovery-code")
+            .collect::<Vec<Credential>>();
+
+        let codes = self
+            .recovery_code_repo
+            .generate_n_recovery_code(input.amount as usize);
+
+        // These are probably not concurrent jobs !
+        // They should be parallelized with threads instead of IO tasks for faster operation
+        let futures = codes
+            .iter()
+            .map(|code| self.recovery_code_repo.secure_for_storage(code));
+        let secure_codes = try_join_all(futures).await?;
+
+        self.credential_repository
+            .create_recovery_code_credentials(user.id, secure_codes)
+            .await
+            .map_err(|e| {
+                tracing::error!("{e}");
+                CoreError::InternalServerError
+            })?;
+
+        // Once new codes stored it's now safe to invalidate the previous recovery codes
+        let _ = {
+            let futures = stored_codes
+                .into_iter()
+                .map(|c| self.credential_repository.delete_by_id(c.id));
+            try_join_all(futures).await
+        }
+        .map_err(|e| {
+            tracing::error!("Failed to delete previously fetched credentials: {e}");
+            CoreError::InternalServerError
+        })?;
+
+        // Now format the codes into human-readable format for
+        // distribution to the user
+        let codes = codes
+            .into_iter()
+            .map(|c| self.recovery_code_repo.format_code(&c, format.clone()))
+            .collect::<Vec<String>>();
+
+        Ok(GenerateRecoveryCodeOutput { codes })
+    }
+
+    async fn burn_recovery_code(
+        &self,
+        identity: Identity,
+        input: BurnRecoveryCodeInput,
+    ) -> Result<BurnRecoveryCodeOutput, CoreError> {
+        let user = match identity {
+            Identity::User(user) => user,
+            _ => return Err(CoreError::Forbidden("Is not an user".to_string())),
+        };
+
+        let session_code =
+            Uuid::parse_str(&input.session_code).map_err(|_| CoreError::SessionCreateError)?;
+
+        let format =
+            RecoveryCodeFormat::try_from(input.format).map_err(CoreError::RecoveryCodeBurnError)?;
+
+        let user_code = self.recovery_code_repo.decode_string(input.code, format)?;
+
+        let auth_session = self
+            .auth_session_repository
+            .get_by_session_code(session_code)
+            .await
+            .map_err(|_| CoreError::SessionNotFound)?;
+
+        let user_credentials = self
+            .credential_repository
+            .get_credentials_by_user_id(user.id)
+            .await
+            .map_err(|_| CoreError::GetUserCredentialsError)?;
+
+        let recovery_code_creds = user_credentials
+            .into_iter()
+            .filter(|cred| cred.credential_type == "recovery-code")
+            .collect::<Vec<Credential>>();
+
+        let verify_results = {
+            let futures = recovery_code_creds
+                .into_iter()
+                .map(|code_cred| self.recovery_code_repo.verify(&user_code, code_cred));
+
+            try_join_all(futures).await
+        }?;
+
+        // This doesn't check if there are multiple matches because it is not necessarly a bug
+        // It is highly unlikely but a user may have multiple identical recovery codes
+        // or it could also be a duplicate storage bug.
+        // Anyway, this is not the place to check such a bug
+        let burnt_code = verify_results
+            .into_iter()
+            .find(|c| c.is_some())
+            .ok_or_else(|| {
+                CoreError::RecoveryCodeBurnError(
+                    "The provided code is invalid or has already been used".to_string(),
+                )
+            })?
+            // Safe, we checked above
+            .unwrap();
+
+        self
+            .credential_repository
+            .delete_by_id(burnt_code.id)
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to delete a credential even though it was just fetched with the same repository: {e}");
+                CoreError::InternalServerError
+            })?;
+
+        let authorization_code = generate_random_string();
+
+        self.auth_session_repository
+            .update_code_and_user_id(session_code, authorization_code.clone(), user.id)
+            .await
+            .map_err(|e| CoreError::TotpVerificationFailed(e.to_string()))?;
+
+        let current_state = auth_session.state.ok_or(CoreError::RecoveryCodeBurnError(
+            "Invalid session state".to_string(),
+        ))?;
+
+        let login_url = format!(
+            "{}?code={}&state={}",
+            auth_session.redirect_uri, authorization_code, current_state
+        );
+
+        Ok(BurnRecoveryCodeOutput { login_url })
+    }
+
     async fn challenge_otp(
         &self,
         identity: Identity,

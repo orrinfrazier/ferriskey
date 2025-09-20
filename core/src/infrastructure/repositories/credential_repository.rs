@@ -4,6 +4,7 @@ use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait,
     QueryFilter,
 };
+use serde_json::Value;
 use tracing::error;
 
 use crate::domain::{
@@ -184,5 +185,44 @@ impl CredentialRepository for PostgresCredentialRepository {
             .map_err(|_| CredentialError::CreateCredentialError)?;
 
         Ok(model.into())
+    }
+
+    async fn create_recovery_code_credentials(
+        &self,
+        user_id: uuid::Uuid,
+        hashes: Vec<HashResult>,
+    ) -> Result<(), CredentialError> {
+        let (now, _) = generate_timestamp();
+
+        let credential_data = hashes
+            .iter()
+            .map(|h| {
+                serde_json::to_value(&h.credential_data)
+                    .map_err(|_| CredentialError::CreateCredentialError)
+            })
+            .collect::<Result<Vec<Value>, CredentialError>>()?;
+
+        let models = hashes
+            .into_iter()
+            .zip(credential_data.into_iter())
+            .map(|(h, cred_data)| ActiveModel {
+                id: Set(generate_uuid_v7()),
+                salt: Set(Some(h.salt)),
+                credential_type: Set("recovery-code".to_string()),
+                user_id: Set(user_id),
+                user_label: Set(None),
+                secret_data: Set(h.hash),
+                credential_data: Set(cred_data),
+                created_at: Set(now.naive_utc()),
+                updated_at: Set(now.naive_utc()),
+                temporary: Set(Some(false)),
+            });
+
+        let _ = CredentialEntity::insert_many(models)
+            .exec(&self.db)
+            .await
+            .map_err(|_| CredentialError::CreateCredentialError)?;
+
+        Ok(())
     }
 }

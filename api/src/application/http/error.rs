@@ -103,6 +103,8 @@ impl From<CoreError> for ApiError {
                 Self::InternalServerError("Failed to create client".to_string())
             }
             CoreError::ServiceUnavailable(msg) => Self::ServiceUnavailable(msg),
+            CoreError::RecoveryCodeGenError(msg) => Self::BadRequest(msg),
+            CoreError::RecoveryCodeBurnError(msg) => Self::BadRequest(msg),
         }
     }
 }

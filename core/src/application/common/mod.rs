@@ -35,6 +35,7 @@ use crate::{
         health::HealthCheckRepoAny,
         jwt::KeyStoreRepoAny,
         realm::repositories::RealmRepoAny,
+        recovery_code::RecoveryCodeRepoAny,
         refresh_token::RefreshTokenRepoAny,
         repositories::build_repos_from_env,
         role::repositories::RoleRepoAny,
@@ -58,7 +59,6 @@ pub type DefaultJwtService = JwtServiceImpl<RefreshTokenRepoAny, KeyStoreRepoAny
 
 #[derive(Clone)]
 pub struct FerriskeyService {
-    //pub(crate) config: FerriskeyConfig,
     pub(crate) realm_repository: RealmRepoAny,
     pub(crate) client_repository: ClientRepoAny,
     pub(crate) user_repository: UserRepoAny,
@@ -76,6 +76,7 @@ pub struct FerriskeyService {
     pub(crate) webhook_notifier_repository: WebhookNotifierRepoAny,
     pub(crate) grant_type_strategies: GrantTypeStrategies,
     pub(crate) authenticate_factory: AuthenticateFactory,
+    pub(crate) recovery_code_repo: RecoveryCodeRepoAny,
 }
 
 impl FerriskeyService {
@@ -129,6 +130,7 @@ impl FerriskeyService {
             credential_repository: repos.credential_repository,
             hasher_repository: repos.hasher_repository,
             auth_session_repository: repos.auth_session_repository,
+            recovery_code_repo: repos.recovery_code_repository,
             redirect_uri_repository: repos.redirect_uri_repository,
             role_repository: repos.role_repository,
             keystore_repository: repos.keystore_repository,
