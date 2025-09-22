@@ -1,83 +1,147 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: ferriskeyclusters.ferriskey.io
+  name: ferriskeyclusters.ferriskey.rs
 spec:
-  group: ferriskey.io
+  group: ferriskey.rs
   names:
     categories: []
-    kind: FerriskeyCluster
+    kind: FerrisKeyCluster
     plural: ferriskeyclusters
     shortNames:
-    - fkc
+    - fkcl
     singular: ferriskeycluster
   scope: Namespaced
   versions:
-  - additionalPrinterColumns: []
-    name: v1
+  - additionalPrinterColumns:
+    - description: FerrisKey Version
+      jsonPath: .spec.version
+      name: Version
+      type: string
+    - description: Number of Replicas
+      jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - description: Is the cluster ready?
+      jsonPath: .status.ready
+      name: Ready
+      type: boolean
+    - description: Current Phase
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Auto-generated derived type for FerriskeyClusterSpec via `CustomResource`
+        description: Auto-generated derived type for FerrisKeyClusterSpec via `CustomResource`
         properties:
           spec:
             properties:
-              backend:
+              api:
                 properties:
-                  allowed_origins:
+                  allowedOrigins:
+                    description: Allowed origins for CORS
                     items:
                       type: string
-                    nullable: true
                     type: array
-                  email:
+                  apiUrl:
+                    description: URL for the API service
+                    type: string
+                  webappUrl:
+                    description: URL for the web application
+                    type: string
+                required:
+                - allowedOrigins
+                - apiUrl
+                - webappUrl
+                type: object
+              database:
+                properties:
+                  databaseName:
+                    description: 'Optional: Database name override (if not specified in secret)'
                     nullable: true
                     type: string
-                  image:
-                    nullable: true
-                    type: string
-                  password:
-                    nullable: true
-                    type: string
-                  replicas:
-                    format: uint8
-                    minimum: 0.0
-                    type: integer
-                  username:
+                  secretRef:
+                    description: Reference to a secret containing database credentials
+                    properties:
+                      name:
+                        description: Name of the secret containing database credentials
+                        type: string
+                      namespace:
+                        description: 'Optional: Namespace of the secret (defaults to same namespace as cluster)'
+                        nullable: true
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  sslMode:
+                    description: 'Optional: SSL mode for database connection'
                     nullable: true
                     type: string
                 required:
-                - replicas
+                - secretRef
                 type: object
-              frontend:
-                properties:
-                  enabled:
-                    type: boolean
-                  image:
-                    nullable: true
-                    type: string
-                required:
-                - enabled
-                type: object
-              postgres:
-                properties:
-                  image:
-                    nullable: true
-                    type: string
-                  storage:
-                    nullable: true
-                    type: string
-                type: object
+              name:
+                type: string
+              replicas:
+                format: uint32
+                minimum: 0.0
+                type: integer
               version:
-                nullable: true
                 type: string
             required:
-            - backend
-            - frontend
-            - postgres
+            - api
+            - database
+            - name
+            - replicas
+            - version
             type: object
           status:
             nullable: true
             properties:
+              conditions:
+                items:
+                  properties:
+                    conditionType:
+                      type: string
+                    lastTransitionTime:
+                      type: string
+                    message:
+                      nullable: true
+                      type: string
+                    reason:
+                      nullable: true
+                      type: string
+                    status:
+                      type: string
+                  required:
+                  - conditionType
+                  - lastTransitionTime
+                  - status
+                  type: object
+                nullable: true
+                type: array
+              databaseStatus:
+                nullable: true
+                properties:
+                  connected:
+                    type: boolean
+                  database:
+                    nullable: true
+                    type: string
+                  host:
+                    nullable: true
+                    type: string
+                  lastCheck:
+                    nullable: true
+                    type: string
+                required:
+                - connected
+                type: object
               message:
+                nullable: true
+                type: string
+              phase:
                 nullable: true
                 type: string
               ready:
@@ -87,7 +151,7 @@ spec:
             type: object
         required:
         - spec
-        title: FerriskeyCluster
+        title: FerrisKeyCluster
         type: object
     served: true
     storage: true
